@@ -23,6 +23,14 @@ inline constexpr const char* autogain = "autogain"; // toggle: level into the ch
 
 inline constexpr const char* hold = "hold";         // toggle: freeze the last beat and loop it into the engine
 
+inline constexpr const char* loop = "loop";               // looper transport: Off, Record, Play, Overdub
+inline constexpr const char* loopspeed = "loopspeed";     // Half, Normal, Double
+inline constexpr const char* loopreverse = "loopreverse"; // toggle
+inline constexpr const char* loopquant = "loopquant";     // toggle: round the loop to whole beats
+inline constexpr const char* loopburst = "loopburst";     // toggle: stutter the loop every 1/16 note
+inline constexpr const char* loopundo = "loopundo";       // momentary toggle: rising edge undoes the overdubs
+inline constexpr const char* looppos = "looppos";         // Pre-FX or Post-FX
+
 inline constexpr std::array knobs { swarm, tail, span, scatter, bend, dusk, haze, mix };
 inline constexpr std::array selectors { family, variant, hazemode };
 } // namespace grain::ids

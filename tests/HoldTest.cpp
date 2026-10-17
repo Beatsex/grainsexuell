@@ -110,24 +110,25 @@ TEST_CASE("hold: off leaves the audio exactly alone, also after a hold cycle")
 
 TEST_CASE("hold: the frozen loop repeats exactly and contains the last beat")
 {
-    // noise for 1 s, then silence; Hold from 1 s on. 120 BPM: loop = 0.5 s = 24000, seam 480, period 23520
+    // noise for 1 s, then silence; Hold from 1 s on. 120 BPM: one beat = 24000 = the repeat period (tempo-locked),
+    // the loop is read from 24480 frames before the press (beat + 480 frames of seam)
     auto x = noise(4.0, 0.5f, 3);
     std::fill(x.begin() + 48000, x.end(), 0.0f);
     Hold h;
     h.prepare(sr);
     const auto y = run(h, x, [](size_t pos) { return pos >= 48000; });
-    REQUIRE(h.loopPeriod() == 23520);
+    REQUIRE(h.loopPeriod() == 24000);
 
     double worst = 0;
-    for (size_t t = 48000 + 2000; t < y.size() - 23520; ++t)
-        worst = std::max(worst, static_cast<double>(std::abs(y[t] - y[t + 23520])));
+    for (size_t t = 48000 + 2000; t < y.size() - 24000; ++t)
+        worst = std::max(worst, static_cast<double>(std::abs(y[t] - y[t + 24000])));
     INFO("periodicity error " << worst);
     REQUIRE(worst < 1e-6);
 
-    // body of the loop = the input 24000 frames before the press
+    // body of the loop = the input 24480 frames before the press
     worst = 0;
-    for (size_t p = 1000; p < 23520; ++p)
-        worst = std::max(worst, static_cast<double>(std::abs(y[48000 + p] - x[48000 - 24000 + p])));
+    for (size_t p = 1000; p < 24000; ++p)
+        worst = std::max(worst, static_cast<double>(std::abs(y[48000 + p] - x[48000 - 24480 + p])));
     INFO("content error " << worst);
     REQUIRE(worst < 1e-6);
 }
@@ -150,7 +151,7 @@ TEST_CASE("hold: the loop is one beat of the tempo, folded into 150 ms .. 2 s")
         h.prepare(sr);
         run(h, x, [](size_t pos) { return pos >= 3 * 48000; }, c.bpm);
         INFO("bpm " << c.bpm);
-        REQUIRE(h.loopPeriod() == expectedLength - 480);
+        REQUIRE(h.loopPeriod() == expectedLength); // exactly one beat
     }
 }
 
@@ -169,6 +170,19 @@ TEST_CASE("hold: the seam and the fades are click-free")
 
     // after release the loop is gone within 50 ms
     REQUIRE(rms(y, 4 * 48000 + 3000, y.size()) == 0.0);
+}
+
+TEST_CASE("hold: switching off and on again during the fade-out does not click")
+{
+    auto x = sine(441.37, 4.0);
+    std::fill(x.begin() + 2 * 48000, x.end(), 0.0f);
+    Hold h;
+    h.prepare(sr);
+    // on at 2 s, off for one 500-frame block (10 ms, inside the 50 ms fade-out), on again
+    const auto y = run(h, x, [](size_t pos) { return pos >= 2 * 48000 && ! (pos >= 3 * 48000 && pos < 3 * 48000 + 500); });
+    REQUIRE(allFinite(y));
+    INFO("max step " << maxStep(y, 2 * 48000, y.size()));
+    REQUIRE(maxStep(y, 2 * 48000, y.size()) < 0.1f);
 }
 
 TEST_CASE("hold: output does not depend on the host block size")

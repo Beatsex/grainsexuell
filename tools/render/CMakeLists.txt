@@ -73,6 +73,15 @@ add_test(NAME render_hold_tap
     COMMAND grain_render --gen notes ${CMAKE_CURRENT_BINARY_DIR}/hold_tap.wav --seconds 8 --tail 3 --gain -6
         --set family=3 --set swarm=0.64 --set mix=0.6 --at 2.0 hold=1 --at 5.0 hold=0)
 
+# Looper (120 BPM fallback, notes loop every 0.5 s... record 1 s, play, overdub, reverse, burst, undo), Post-FX and Pre-FX.
+foreach(position 0 1)
+    add_test(NAME render_looper_pos${position}
+        COMMAND grain_render --gen notes ${CMAKE_CURRENT_BINARY_DIR}/looper_pos${position}.wav --seconds 12 --tail 2 --gain -9
+            --set family=3 --set swarm=0.64 --set mix=0.5 --set looppos=${position}
+            --at 0.0 loop=1 --at 2.0 loop=2 --at 4.0 loop=3 --at 6.0 loop=2
+            --at 7.0 loopreverse=1 --at 8.0 loopreverse=0 --at 8.5 loopburst=1 --at 10.0 loopburst=0 --at 10.5 loopundo=1)
+endforeach()
+
 # Keeps the harness itself from rotting: generated tone must pass every check and come out unchanged.
 add_test(NAME render_smoke
     COMMAND grain_render --gen tone440 ${CMAKE_CURRENT_BINARY_DIR}/render_smoke.wav --set mix=0 --expect-identity)

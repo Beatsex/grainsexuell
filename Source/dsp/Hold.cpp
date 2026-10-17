@@ -27,15 +27,16 @@ void Hold::process(float* const* ch, int numCh, int n, bool hold, double bpm)
     if (size == 0)
         return; // process before prepare: leave the audio alone
 
-    if (hold && ! held)
+    if (hold && ! held && gain <= 0.0f) // re-engaging during the fade-out keeps the running loop: no jump to a new window
     {
         double sec = 60.0 / (std::isfinite(bpm) && bpm > 0.0 ? std::clamp(bpm, 20.0, 400.0) : 120.0);
         while (sec > 2.0) // fold into 150 ms .. 2 s, staying on the beat grid
             sec *= 0.5;
         while (sec < 0.15)
             sec *= 2.0;
-        const int length = std::max(8, static_cast<int>(sec * sampleRate));
-        seam = std::min(static_cast<int>(0.01 * sampleRate), length / 4);
+        // the loop is one beat plus the 10 ms seam, so the repeat period is exactly one beat (tempo-locked)
+        seam = static_cast<int>(0.01 * sampleRate);
+        const int length = std::max(8, static_cast<int>(sec * sampleRate)) + seam;
         period = length - seam;
         start = (writePos - length) & mask;
         loopPos = 0;

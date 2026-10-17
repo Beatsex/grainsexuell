@@ -11,6 +11,13 @@ PluginProcessor::PluginProcessor()
       duskParam(apvts.getRawParameterValue(grain::ids::dusk)),
       autoGainParam(apvts.getRawParameterValue(grain::ids::autogain)),
       holdParam(apvts.getRawParameterValue(grain::ids::hold)),
+      loopParam(apvts.getRawParameterValue(grain::ids::loop)),
+      loopSpeedParam(apvts.getRawParameterValue(grain::ids::loopspeed)),
+      loopReverseParam(apvts.getRawParameterValue(grain::ids::loopreverse)),
+      loopQuantParam(apvts.getRawParameterValue(grain::ids::loopquant)),
+      loopBurstParam(apvts.getRawParameterValue(grain::ids::loopburst)),
+      loopUndoParam(apvts.getRawParameterValue(grain::ids::loopundo)),
+      loopPosParam(apvts.getRawParameterValue(grain::ids::looppos)),
       swarmParam(apvts.getRawParameterValue(grain::ids::swarm)),
       tailParam(apvts.getRawParameterValue(grain::ids::tail)),
       spanParam(apvts.getRawParameterValue(grain::ids::span)),
@@ -25,6 +32,7 @@ void PluginProcessor::prepareToPlay(double sampleRate, int)
 {
     autoGain.prepare(sampleRate);
     hold.prepare(sampleRate);
+    looper.prepare(sampleRate); // 60 s stereo base + overdub layer
     mosaic.prepare(sampleRate);
     cloud.prepare(sampleRate);
     shard.prepare(sampleRate);
@@ -73,6 +81,18 @@ void PluginProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiB
 
     autoGain.begin(ch, numCh, n, autoGainParam->load() > 0.5f);
     hold.process(ch, numCh, n, holdParam->load() > 0.5f, bpm); // adds the frozen loop to the engine input
+
+    // the looper runs once per block, either here (Pre-FX: the engines process the loop) or at the end (Post-FX)
+    const bool loopPre = static_cast<int>(loopPosParam->load() + 0.5f) == 0;
+    const grain::dsp::Looper::Params loopParams { static_cast<int>(loopParam->load() + 0.5f),
+                                                  static_cast<int>(loopSpeedParam->load() + 0.5f),
+                                                  loopReverseParam->load() > 0.5f,
+                                                  loopQuantParam->load() > 0.5f,
+                                                  loopBurstParam->load() > 0.5f,
+                                                  loopUndoParam->load() > 0.5f,
+                                                  bpm };
+    if (loopPre)
+        looper.process(ch, numCh, n, loopParams);
     const float swarm = swarmParam->load(), tail = tailParam->load(), span = spanParam->load();
     const float scatter = scatterParam->load(), mix = mixParam->load();
     const int variant = static_cast<int>(variantParam->load() + 0.5f), family = static_cast<int>(familyParam->load() + 0.5f);
@@ -84,6 +104,8 @@ void PluginProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiB
     reverb.process(ch, numCh, n, hazeParam->load(), static_cast<int>(hazeModeParam->load() + 0.5f));
     lowpass.process(ch, numCh, n, duskParam->load());
     autoGain.end(ch, numCh, n);
+    if (! loopPre)
+        looper.process(ch, numCh, n, loopParams); // records and plays the finished output
 }
 
 juce::AudioProcessorEditor* PluginProcessor::createEditor()

@@ -10,8 +10,8 @@ namespace grain::dsp
 // before the effect engine. Switching it off fades the loop out and resumes recording. Off = bit-exact.
 //
 //  - Loop: one beat at the given tempo, folded into 150 ms .. 2 s, fixed when Hold goes on
-//  - Seam: the loop's last 10 ms are replaced by an equal-power crossfade with the audio just before the loop
-//    start, so the loop (period = length - seam) joins itself without a click
+//  - Seam: the loop is one beat plus 10 ms; the first 10 ms are an equal-power crossfade with the audio one period
+//    further on, so the loop repeats exactly once per beat and joins itself without a click
 //  - Fades: 20 ms in, 50 ms out
 class Hold
 {

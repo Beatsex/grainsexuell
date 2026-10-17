@@ -38,6 +38,17 @@ juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
     layout.add(std::make_unique<juce::AudioParameterBool>(juce::ParameterID { ids::autogain, 1 }, "Auto Gain", false));
     layout.add(std::make_unique<juce::AudioParameterBool>(juce::ParameterID { ids::hold, 1 }, "Hold", false));
 
+    layout.add(std::make_unique<juce::AudioParameterChoice>(
+        juce::ParameterID { ids::loop, 1 }, "Loop", juce::StringArray { "Off", "Record", "Play", "Overdub" }, 0));
+    layout.add(std::make_unique<juce::AudioParameterChoice>(
+        juce::ParameterID { ids::loopspeed, 1 }, "Loop Speed", juce::StringArray { "Half", "Normal", "Double" }, 1));
+    layout.add(std::make_unique<juce::AudioParameterBool>(juce::ParameterID { ids::loopreverse, 1 }, "Loop Reverse", false));
+    layout.add(std::make_unique<juce::AudioParameterBool>(juce::ParameterID { ids::loopquant, 1 }, "Loop Quantize", false));
+    layout.add(std::make_unique<juce::AudioParameterBool>(juce::ParameterID { ids::loopburst, 1 }, "Loop Burst", false));
+    layout.add(std::make_unique<juce::AudioParameterBool>(juce::ParameterID { ids::loopundo, 1 }, "Loop Undo", false));
+    layout.add(std::make_unique<juce::AudioParameterChoice>(
+        juce::ParameterID { ids::looppos, 1 }, "Loop Position", juce::StringArray { "Pre-FX", "Post-FX" }, 1));
+
     return layout;
 }
 } // namespace grain

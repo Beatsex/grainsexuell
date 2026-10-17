@@ -45,7 +45,43 @@ TEST_CASE("parameter layout: 8 knobs + 3 selectors + auto gain and hold toggles,
     REQUIRE(hold != nullptr);
     REQUIRE(! hold->get()); // off by default keeps the output bit-exact
 
-    REQUIRE(p.getParameters().size() == 13);
+    // looper: transport Off, normal speed, switches off, Post-FX
+    const auto choice = [&p](const char* id) { return dynamic_cast<juce::AudioParameterChoice*>(p.apvts.getParameter(id)); };
+    const auto toggle = [&p](const char* id) { return dynamic_cast<juce::AudioParameterBool*>(p.apvts.getParameter(id)); };
+    REQUIRE(choice(grain::ids::loop) != nullptr);
+    REQUIRE(choice(grain::ids::loop)->getIndex() == 0);
+    REQUIRE(choice(grain::ids::loopspeed)->getIndex() == 1);
+    REQUIRE(choice(grain::ids::looppos)->getIndex() == 1);
+    for (auto* id : { grain::ids::loopreverse, grain::ids::loopquant, grain::ids::loopburst, grain::ids::loopundo })
+    {
+        INFO(id);
+        REQUIRE(toggle(id) != nullptr);
+        REQUIRE(! toggle(id)->get());
+    }
+
+    REQUIRE(p.getParameters().size() == 20);
+}
+
+TEST_CASE("loading a state saved before the hold parameter existed leaves Hold off")
+{
+    PluginProcessor a, b;
+    b.apvts.getParameter(grain::ids::hold)->setValueNotifyingHost(1.0f); // Hold is on in the live instance
+
+    juce::MemoryBlock block;
+    a.getStateInformation(block);
+    auto xml = juce::AudioProcessor::getXmlFromBinary(block.getData(), static_cast<int>(block.getSize()));
+    REQUIRE(xml != nullptr);
+    for (auto* child = xml->getFirstChildElement(); child != nullptr; child = child->getNextElement())
+        if (child->getStringAttribute("id") == grain::ids::hold)
+        {
+            xml->removeChildElement(child, true); // an old state has no entry for it
+            break;
+        }
+    juce::MemoryBlock old;
+    juce::AudioProcessor::copyXmlToBinary(*xml, old);
+    b.setStateInformation(old.getData(), static_cast<int>(old.getSize()));
+
+    REQUIRE(b.apvts.getParameter(grain::ids::hold)->getValue() == Catch::Approx(0.0f));
 }
 
 TEST_CASE("state round trip keeps parameter values")
