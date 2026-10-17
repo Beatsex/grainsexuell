@@ -79,7 +79,7 @@ bool generate(const juce::String& name, double sr, double seconds, juce::AudioBu
         for (int i = 0; i < n; ++i)
         {
             const double t = i / sr, k = std::floor(t / 0.5), tt = t - k * 0.5, f = pitches[static_cast<int>(k) % 6];
-            const double env = std::exp(-tt / 0.2) * std::min(1.0, tt / 0.005);
+            const double env = std::exp(-tt / 0.2) * std::min(1.0, tt / 0.005) * std::min(1.0, (0.5 - tt) / 0.005); // 5 ms release: no step at the note change
             const double v = (std::sin(twoPi * f * tt) + 0.3 * std::sin(twoPi * 2 * f * tt) + 0.15 * std::sin(twoPi * 3 * f * tt)) / 1.45;
             b.setSample(0, i, static_cast<float>(0.5 * env * v));
             b.setSample(1, i, b.getSample(0, i));
