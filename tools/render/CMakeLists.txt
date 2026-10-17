@@ -14,6 +14,14 @@ add_test(NAME render_dusk
 add_test(NAME render_bend
     COMMAND grain_render --gen tone440 ${CMAKE_CURRENT_BINARY_DIR}/bend.wav --set bend=1)
 
+# Auto Gain: the leveler is transparent (identity) on quiet and normal sources; the ceiling holds on hot ones.
+add_test(NAME render_autogain_quiet
+    COMMAND grain_render --gen tone440 ${CMAKE_CURRENT_BINARY_DIR}/ag_quiet.wav --gain -30 --seconds 10 --set autogain=1 --expect-identity)
+add_test(NAME render_autogain_normal
+    COMMAND grain_render --gen tone440 ${CMAKE_CURRENT_BINARY_DIR}/ag_normal.wav --seconds 6 --set autogain=1 --expect-identity)
+add_test(NAME render_ceiling
+    COMMAND grain_render --gen tone440 ${CMAKE_CURRENT_BINARY_DIR}/ceiling.wav --gain 12 --set autogain=1)
+
 # Keeps the harness itself from rotting: generated tone must pass every check and come out unchanged.
 add_test(NAME render_smoke
     COMMAND grain_render --gen tone440 ${CMAKE_CURRENT_BINARY_DIR}/render_smoke.wav --expect-identity)

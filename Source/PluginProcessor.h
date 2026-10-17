@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Parameters.h"
+#include "dsp/AutoGain.h"
 #include "dsp/Lowpass.h"
 #include "dsp/ModDelay.h"
 #include "dsp/Reverb.h"
@@ -37,13 +38,17 @@ public:
 
     juce::AudioProcessorValueTreeState apvts;
 
+    float autoGainDb() const { return autoGain.gainDb(); } // tests; GUI meter later (make atomic then)
+
 private:
     std::atomic<float>* bendParam;
     std::atomic<float>* hazeParam;
     std::atomic<float>* hazeModeParam;
     std::atomic<float>* duskParam;
+    std::atomic<float>* autoGainParam;
 
-    // signal path after the (not yet written) effect engine: pitch modulation -> reverb -> low-pass
+    // auto gain wraps the chain; chain = (not yet written) effect engine -> pitch modulation -> reverb -> low-pass
+    grain::dsp::AutoGain autoGain;
     grain::dsp::ModDelay modDelay;
     grain::dsp::Reverb reverb;
     grain::dsp::Lowpass lowpass;

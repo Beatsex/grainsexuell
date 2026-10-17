@@ -8,12 +8,14 @@ PluginProcessor::PluginProcessor()
       bendParam(apvts.getRawParameterValue(grain::ids::bend)),
       hazeParam(apvts.getRawParameterValue(grain::ids::haze)),
       hazeModeParam(apvts.getRawParameterValue(grain::ids::hazemode)),
-      duskParam(apvts.getRawParameterValue(grain::ids::dusk))
+      duskParam(apvts.getRawParameterValue(grain::ids::dusk)),
+      autoGainParam(apvts.getRawParameterValue(grain::ids::autogain))
 {
 }
 
 void PluginProcessor::prepareToPlay(double sampleRate, int)
 {
+    autoGain.prepare(sampleRate);
     modDelay.prepare(sampleRate);
     reverb.prepare(sampleRate);
     lowpass.prepare(sampleRate);
@@ -43,9 +45,18 @@ void PluginProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiB
 
     auto* const* ch = buffer.getArrayOfWritePointers();
     const int n = buffer.getNumSamples();
+
+    // One NaN/Inf (or a finite sample so large its square overflows) would otherwise live on forever in the
+    // filter, reverb and level-detector state. +/-1e4 is +80 dBFS: never real audio.
+    for (int c = 0; c < numCh; ++c)
+        for (int i = 0; i < n; ++i)
+            ch[c][i] = std::isfinite(ch[c][i]) ? std::clamp(ch[c][i], -1.0e4f, 1.0e4f) : 0.0f;
+
+    autoGain.begin(ch, numCh, n, autoGainParam->load() > 0.5f);
     modDelay.process(ch, numCh, n, bendParam->load());
     reverb.process(ch, numCh, n, hazeParam->load(), static_cast<int>(hazeModeParam->load() + 0.5f));
     lowpass.process(ch, numCh, n, duskParam->load());
+    autoGain.end(ch, numCh, n);
 }
 
 juce::AudioProcessorEditor* PluginProcessor::createEditor()

@@ -2,7 +2,7 @@
 // then the automatic checks (identity, finite, bounded). Exit code 0 = all checks passed, 1 = a check failed, 2 = bad usage.
 //
 //   grain_render <in.wav | --gen impulse|sweep|tone440|silence> <out.wav>
-//                [--set id=value]... [--sr 48000] [--block 512] [--seconds 2] [--tail 0] [--expect-identity]
+//                [--set id=value]... [--sr 48000] [--block 512] [--seconds 2] [--tail 0] [--gain dB] [--expect-identity]
 
 #include "PluginProcessor.h"
 
@@ -20,6 +20,7 @@ struct Options
     double sampleRate = 48000.0, seconds = 2.0;
     int block = 512;
     double tail = 0.0; // extra silent seconds appended so reverb decay is rendered and checked
+    double gainDb = 0.0; // input gain applied before processing (quiet / hot test sources)
     bool expectIdentity = false;
     std::vector<std::pair<juce::String, float>> sets;
 };
@@ -28,7 +29,7 @@ int usage(const char* why)
 {
     std::fprintf(stderr,
                  "%s\nusage: grain_render <in.wav | --gen impulse|sweep|tone440|silence> <out.wav> "
-                 "[--set id=value]... [--sr N] [--block N] [--seconds S] [--tail S] [--expect-identity]\n",
+                 "[--set id=value]... [--sr N] [--block N] [--seconds S] [--tail S] [--gain dB] [--expect-identity]\n",
                  why);
     return 2;
 }
@@ -46,6 +47,7 @@ bool parse(int argc, char** argv, Options& o)
         else if (a == "--block") o.block = next().getIntValue();
         else if (a == "--seconds") o.seconds = next().getDoubleValue();
         else if (a == "--tail") o.tail = next().getDoubleValue();
+        else if (a == "--gain") o.gainDb = next().getDoubleValue();
         else if (a == "--expect-identity") o.expectIdentity = true;
         else if (a == "--set")
         {
@@ -141,6 +143,7 @@ int main(int argc, char** argv)
         reader->read(&input, 0, static_cast<int>(reader->lengthInSamples), 0, true, true);
     }
 
+    input.applyGain(static_cast<float>(juce::Decibels::decibelsToGain(o.gainDb)));
     if (o.tail > 0.0)
         input.setSize(2, input.getNumSamples() + static_cast<int>(o.tail * o.sampleRate), true, true);
 

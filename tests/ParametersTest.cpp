@@ -6,7 +6,7 @@
 #include <set>
 #include <string>
 
-TEST_CASE("parameter layout: 8 knobs + 3 selectors, unique ids, sane defaults")
+TEST_CASE("parameter layout: 8 knobs + 3 selectors + auto gain toggle, unique ids, sane defaults")
 {
     PluginProcessor p;
     std::set<std::string> seen;
@@ -37,7 +37,11 @@ TEST_CASE("parameter layout: 8 knobs + 3 selectors, unique ids, sane defaults")
         REQUIRE(param->getIndex() == (std::string(id) == grain::ids::hazemode ? 1 : 0)); // Plate by default
     }
 
-    REQUIRE(p.getParameters().size() == 11);
+    auto* autoGain = dynamic_cast<juce::AudioParameterBool*>(p.apvts.getParameter(grain::ids::autogain));
+    REQUIRE(autoGain != nullptr);
+    REQUIRE(! autoGain->get()); // off by default keeps the output bit-exact
+
+    REQUIRE(p.getParameters().size() == 12);
 }
 
 TEST_CASE("state round trip keeps parameter values")

@@ -19,6 +19,8 @@ inline constexpr const char* family = "family";   // Mosaic, Cloud, Shard, Tap
 inline constexpr const char* variant = "variant"; // A..D
 inline constexpr const char* hazemode = "hazemode"; // Room, Plate, Hall, Swell
 
+inline constexpr const char* autogain = "autogain"; // toggle: level into the chain, restore out, safety ceiling
+
 inline constexpr std::array knobs { swarm, tail, span, scatter, bend, dusk, haze, mix };
 inline constexpr std::array selectors { family, variant, hazemode };
 } // namespace grain::ids

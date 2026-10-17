@@ -35,6 +35,8 @@ juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
     layout.add(std::make_unique<juce::AudioParameterChoice>(
         juce::ParameterID { ids::hazemode, 1 }, "Haze Mode", juce::StringArray { "Room", "Plate", "Hall", "Swell" }, 1));
 
+    layout.add(std::make_unique<juce::AudioParameterBool>(juce::ParameterID { ids::autogain, 1 }, "Auto Gain", false));
+
     return layout;
 }
 } // namespace grain
