@@ -36,6 +36,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
         juce::ParameterID { ids::hazemode, 1 }, "Haze Mode", juce::StringArray { "Room", "Plate", "Hall", "Swell" }, 1));
 
     layout.add(std::make_unique<juce::AudioParameterBool>(juce::ParameterID { ids::autogain, 1 }, "Auto Gain", false));
+    layout.add(std::make_unique<juce::AudioParameterBool>(juce::ParameterID { ids::hold, 1 }, "Hold", false));
 
     return layout;
 }

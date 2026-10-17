@@ -23,13 +23,15 @@ struct Options
     double gainDb = 0.0; // input gain applied before processing (quiet / hot test sources)
     bool expectIdentity = false;
     std::vector<std::pair<juce::String, float>> sets;
+    struct Event { double seconds; juce::String id; float value; };
+    std::vector<Event> events; // --at S id=value: set a parameter when the render reaches S seconds (block resolution)
 };
 
 int usage(const char* why)
 {
     std::fprintf(stderr,
                  "%s\nusage: grain_render <in.wav | --gen impulse|sweep|tone440|notes|silence> <out.wav> "
-                 "[--set id=value]... [--sr N] [--block N] [--seconds S] [--tail S] [--gain dB] [--expect-identity]\n",
+                 "[--set id=value]... [--at S id=value]... [--sr N] [--block N] [--seconds S] [--tail S] [--gain dB] [--expect-identity]\n",
                  why);
     return 2;
 }
@@ -54,6 +56,13 @@ bool parse(int argc, char** argv, Options& o)
             const auto kv = next();
             if (! kv.contains("=")) return false;
             o.sets.emplace_back(kv.upToFirstOccurrenceOf("=", false, false), kv.fromFirstOccurrenceOf("=", false, false).getFloatValue());
+        }
+        else if (a == "--at")
+        {
+            const auto when = next(), kv = next();
+            if (! kv.contains("=")) return false;
+            o.events.push_back({ when.getDoubleValue(), kv.upToFirstOccurrenceOf("=", false, false),
+                                 kv.fromFirstOccurrenceOf("=", false, false).getFloatValue() });
         }
         else positional.add(a);
     }
@@ -173,6 +182,9 @@ int main(int argc, char** argv)
         param->setValueNotifyingHost(param->convertTo0to1(value));
     }
 
+    for (auto& e : o.events)
+        if (p.apvts.getParameter(e.id) == nullptr) return usage(("unknown parameter: " + e.id).toRawUTF8());
+
     p.setRateAndBufferSizeDetails(o.sampleRate, o.block);
     p.prepareToPlay(o.sampleRate, o.block);
 
@@ -182,6 +194,12 @@ int main(int argc, char** argv)
     for (int pos = 0; pos < total; pos += o.block)
     {
         const int n = std::min(o.block, total - pos);
+        for (auto& e : o.events)
+            if (pos >= static_cast<int>(e.seconds * o.sampleRate) && pos - o.block < static_cast<int>(e.seconds * o.sampleRate))
+            {
+                auto* param = p.apvts.getParameter(e.id);
+                param->setValueNotifyingHost(param->convertTo0to1(e.value));
+            }
         work.clear();
         for (int ch = 0; ch < inChannels; ++ch) work.copyFrom(ch, 0, input, ch, pos, n);
         juce::AudioBuffer<float> view(work.getArrayOfWritePointers(), 2, n);

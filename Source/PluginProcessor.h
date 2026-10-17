@@ -3,6 +3,7 @@
 #include "Parameters.h"
 #include "dsp/AutoGain.h"
 #include "dsp/Cloud.h"
+#include "dsp/Hold.h"
 #include "dsp/Lowpass.h"
 #include "dsp/ModDelay.h"
 #include "dsp/Mosaic.h"
@@ -53,6 +54,7 @@ private:
     std::atomic<float>* hazeModeParam;
     std::atomic<float>* duskParam;
     std::atomic<float>* autoGainParam;
+    std::atomic<float>* holdParam;
     std::atomic<float>* swarmParam;
     std::atomic<float>* tailParam;
     std::atomic<float>* spanParam;
@@ -63,6 +65,7 @@ private:
 
     // auto gain wraps the chain; chain = effect engine (Mosaic, Cloud; other families later) -> pitch modulation -> reverb -> low-pass
     grain::dsp::AutoGain autoGain;
+    grain::dsp::Hold hold;
     grain::dsp::Mosaic mosaic;
     grain::dsp::Cloud cloud;
     grain::dsp::Shard shard;

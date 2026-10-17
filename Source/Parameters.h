@@ -21,6 +21,8 @@ inline constexpr const char* hazemode = "hazemode"; // Room, Plate, Hall, Swell
 
 inline constexpr const char* autogain = "autogain"; // toggle: level into the chain, restore out, safety ceiling
 
+inline constexpr const char* hold = "hold";         // toggle: freeze the last beat and loop it into the engine
+
 inline constexpr std::array knobs { swarm, tail, span, scatter, bend, dusk, haze, mix };
 inline constexpr std::array selectors { family, variant, hazemode };
 } // namespace grain::ids

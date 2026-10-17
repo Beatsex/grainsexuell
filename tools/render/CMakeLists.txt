@@ -62,6 +62,17 @@ add_test(NAME render_shard_feedback
     COMMAND grain_render --gen notes ${CMAKE_CURRENT_BINARY_DIR}/shard_feedback.wav --seconds 8 --tail 6
         --set family=2 --set tail=0.8 --set scatter=0.6 --set swarm=0.5 --set mix=0.6)
 
+# Hold: freeze at 2 s, release at 5 s (loop = one beat at the 120 BPM fallback), alone and through two engines.
+add_test(NAME render_hold_plain
+    COMMAND grain_render --gen notes ${CMAKE_CURRENT_BINARY_DIR}/hold_plain.wav --seconds 8 --gain -6
+        --set mix=0 --at 2.0 hold=1 --at 5.0 hold=0)
+add_test(NAME render_hold_cloud
+    COMMAND grain_render --gen notes ${CMAKE_CURRENT_BINARY_DIR}/hold_cloud.wav --seconds 8 --tail 3 --gain -6
+        --set family=1 --set swarm=0.7 --set mix=0.7 --at 2.0 hold=1 --at 5.0 hold=0)
+add_test(NAME render_hold_tap
+    COMMAND grain_render --gen notes ${CMAKE_CURRENT_BINARY_DIR}/hold_tap.wav --seconds 8 --tail 3 --gain -6
+        --set family=3 --set swarm=0.64 --set mix=0.6 --at 2.0 hold=1 --at 5.0 hold=0)
+
 # Keeps the harness itself from rotting: generated tone must pass every check and come out unchanged.
 add_test(NAME render_smoke
     COMMAND grain_render --gen tone440 ${CMAKE_CURRENT_BINARY_DIR}/render_smoke.wav --set mix=0 --expect-identity)

@@ -10,6 +10,7 @@ PluginProcessor::PluginProcessor()
       hazeModeParam(apvts.getRawParameterValue(grain::ids::hazemode)),
       duskParam(apvts.getRawParameterValue(grain::ids::dusk)),
       autoGainParam(apvts.getRawParameterValue(grain::ids::autogain)),
+      holdParam(apvts.getRawParameterValue(grain::ids::hold)),
       swarmParam(apvts.getRawParameterValue(grain::ids::swarm)),
       tailParam(apvts.getRawParameterValue(grain::ids::tail)),
       spanParam(apvts.getRawParameterValue(grain::ids::span)),
@@ -23,6 +24,7 @@ PluginProcessor::PluginProcessor()
 void PluginProcessor::prepareToPlay(double sampleRate, int)
 {
     autoGain.prepare(sampleRate);
+    hold.prepare(sampleRate);
     mosaic.prepare(sampleRate);
     cloud.prepare(sampleRate);
     shard.prepare(sampleRate);
@@ -63,18 +65,19 @@ void PluginProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiB
         for (int i = 0; i < n; ++i)
             ch[c][i] = std::isfinite(ch[c][i]) ? std::clamp(ch[c][i], -1.0e4f, 1.0e4f) : 0.0f;
 
-    autoGain.begin(ch, numCh, n, autoGainParam->load() > 0.5f);
-    const float swarm = swarmParam->load(), tail = tailParam->load(), span = spanParam->load();
-    const float scatter = scatterParam->load(), mix = mixParam->load();
-    const int variant = static_cast<int>(variantParam->load() + 0.5f), family = static_cast<int>(familyParam->load() + 0.5f);
-    mosaic.process(ch, numCh, n, { swarm, tail, span, scatter, mix, variant, family == 0 });
-    cloud.process(ch, numCh, n, { swarm, tail, span, scatter, mix, variant, family == 1 });
-
     double bpm = 120.0; // no host tempo (standalone): fixed fallback
     if (auto* head = getPlayHead())
         if (auto position = head->getPosition())
             if (auto hostBpm = position->getBpm())
                 bpm = *hostBpm;
+
+    autoGain.begin(ch, numCh, n, autoGainParam->load() > 0.5f);
+    hold.process(ch, numCh, n, holdParam->load() > 0.5f, bpm); // adds the frozen loop to the engine input
+    const float swarm = swarmParam->load(), tail = tailParam->load(), span = spanParam->load();
+    const float scatter = scatterParam->load(), mix = mixParam->load();
+    const int variant = static_cast<int>(variantParam->load() + 0.5f), family = static_cast<int>(familyParam->load() + 0.5f);
+    mosaic.process(ch, numCh, n, { swarm, tail, span, scatter, mix, variant, family == 0 });
+    cloud.process(ch, numCh, n, { swarm, tail, span, scatter, mix, variant, family == 1 });
     shard.process(ch, numCh, n, { swarm, tail, span, scatter, mix, variant, family == 2, bpm });
     tap.process(ch, numCh, n, { swarm, tail, span, scatter, mix, variant, family == 3, bpm });
     modDelay.process(ch, numCh, n, bendParam->load());
