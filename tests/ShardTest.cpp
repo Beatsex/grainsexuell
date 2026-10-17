@@ -255,10 +255,33 @@ TEST_CASE("shard: Arp plays the recent onsets at rising pitches")
     for (double f : { 440.0, 523.25, 659.26, 880.0 })
         REQUIRE(tone(y, f, 2, 8) > 3.0 * floor);
 
-    // and without any onset there is nothing to play
+    // and without any onset there is nothing to play: silence, but also steady noise or a steady tone (no start-up trigger)
     Shard quiet;
     quiet.prepare(sr);
     REQUIRE(rms(run(quiet, sine(440.0, 3.0, 0.0f), wet(2)), 0, 3) == 0.0);
+    for (const auto& steady : { noise(3.0), sine(440.0, 3.0) })
+    {
+        Shard st;
+        st.prepare(sr);
+        REQUIRE(rms(run(st, steady, wet(2)), 0, 3) < 1e-6); // (Mix 1 leaks about 4e-8 of the dry signal)
+    }
+}
+
+TEST_CASE("shard: Arp also follows quiet playing (-30 dBFS)")
+{
+    std::vector<float> x(static_cast<size_t>(8.0 * sr), 0.0f);
+    for (int k = 1; k < 14; ++k)
+        for (int i = 0; i < 2400; ++i)
+        {
+            const size_t at = static_cast<size_t>(k * 24000 + i);
+            if (at < x.size())
+                x[at] = 0.03f * static_cast<float>(std::sin(2.0 * std::numbers::pi * 440.0 * i / sr) * std::sin(std::numbers::pi * i / 2400.0));
+        }
+    Shard s;
+    s.prepare(sr);
+    const auto y = run(s, x, wet(2, swarmFor(1)));
+    REQUIRE(s.slicesPlayed() > 10);
+    REQUIRE(tone(y, 880, 2, 8) > 3.0 * tone(y, 1200, 2, 8));
 }
 
 TEST_CASE("shard: Stutter repeats a frozen slice with falling level")

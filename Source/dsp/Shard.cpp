@@ -72,7 +72,7 @@ void Shard::detectOnset(float dryL, float dryR)
     slow += (level - slow) * slowCoef;
     if (refractory > 0)
         --refractory;
-    else if (fast > 2.5f * slow + 0.02f)
+    else if (absFrame >= refractoryFrames && fast > 2.5f * slow + 0.003f) // not in the first 60 ms: the followers start at 0, so any steady input looks like an onset; floor = -50 dBFS
     {
         onsets[static_cast<size_t>(onsetHead)] = std::max<std::int64_t>(0, absFrame - fade); // the follower lags by about a fade
         onsetHead = (onsetHead + 1) % numOnsets;
@@ -141,7 +141,8 @@ void Shard::spawn(const Params& p, double now, double sliceFrames, int maxBack, 
         }
         default: // Stutter
         {
-            if (repeatsLeft == 0)
+            // re-freeze when the group is done, or when a longer slice (tempo or Swarm change) would push it out of reach
+            if (repeatsLeft == 0 || now - frozenPos > reachSeconds * sampleRate - sliceFrames)
             {
                 const int m = 1 + static_cast<int>(rand01() * static_cast<float>(std::min(2, maxBack)));
                 frozenPos = now - std::min(m, 2) * sliceFrames;
@@ -154,7 +155,9 @@ void Shard::spawn(const Params& p, double now, double sliceFrames, int maxBack, 
             break;
         }
     }
-    ++stepCount;
+    stepCount = (stepCount + 1) % 840; // multiple of 4 (arp ratios) and of 1..4 onsets: wraps without a visible jump
+    if (p.variant != 3)
+        repeatsLeft = 0; // a Stutter group left half-way must not resume from an old frozen position
 }
 
 void Shard::process(float* const* ch, int numCh, int n, const Params& requested)
@@ -186,7 +189,7 @@ void Shard::process(float* const* ch, int numCh, int n, const Params& requested)
         sliceSec *= 0.5;
     while (sliceSec < 0.03)
         sliceSec *= 2.0;
-    const double sliceFrames = std::floor(sliceSec * sampleRate);
+    const double sliceFrames = std::max(1.0, std::floor(sliceSec * sampleRate)); // never 0: the spawn loop would not advance
     const int maxBack = std::max(1, std::min(8, static_cast<int>(reachSeconds * sampleRate / sliceFrames)));
     const float feedback = p.tail * maxFeedback;
     const float bitLevels = static_cast<float>(1 << (11 - static_cast<int>(std::lround(p.span * 9.0f)))); // 12 .. 3 bits
