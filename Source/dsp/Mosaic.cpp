@@ -19,14 +19,6 @@ float smooth(float x, float a, float b)
     return t * t * (3.0f - 2.0f * t);
 }
 
-int powerOfTwoAtLeast(int n)
-{
-    int p = 1;
-    while (p < n)
-        p <<= 1;
-    return p;
-}
-
 // copies `total` frames starting at ring index `start` (wrapping) into dst
 void copyFromRing(const std::vector<float>& ring, int start, int total, float* dst)
 {
@@ -41,11 +33,7 @@ void copyFromRing(const std::vector<float>& ring, int start, int total, float* d
 void Mosaic::prepare(double sr)
 {
     sampleRate = sr;
-    ringSize = powerOfTwoAtLeast(static_cast<int>(ringSeconds * sr) + 16);
-    ringMask = ringSize - 1;
-    for (auto& r : ring)
-        for (auto& c : r)
-            c.assign(static_cast<size_t>(ringSize), 0.0f);
+    cap.prepare(sr, ringSeconds);
 
     const int slotFrames = static_cast<int>((maxSpanSeconds + 2.0f * maxEdgeSeconds) * sr) + 16;
     for (auto& s : slots)
@@ -58,10 +46,7 @@ void Mosaic::prepare(double sr)
         s.env = 1.0f;
     }
     cur = 0;
-    writePos = 0;
 
-    lp2.prepare(sr);
-    lp4.prepare(sr);
     mixSm.reset(sr, 0.02);
     swarmSm.reset(sr, 0.05);
     dryGain = 1.0f;
@@ -114,14 +99,14 @@ void Mosaic::grab(const Params& p)
     const int X = std::max(1, std::min(static_cast<int>(maxEdgeSeconds * sampleRate), L / 4));
     const int total = L + 2 * X;
     const int jitter = p.scatter > 0.0f ? static_cast<int>(rand01() * p.scatter * 0.25f * static_cast<float>(sampleRate)) : 0;
-    const int start = ((writePos - jitter - total) % ringSize + ringSize) % ringSize;
+    const int start = ((cap.writePos - jitter - total) % cap.size + cap.size) % cap.size;
 
     // ponytail: copies all 3 sources x 2 channels at once (about 0.1 ms at 48 kHz, an estimated 0.5-1.5 ms at
     // 192 kHz with Span 1: too long for 64-128 sample buffers there). Upgrade: spread the copy over several
     // chunks (the 2 s ring is not overwritten for ~0.9 s) and swap `cur` when it is done.
     for (size_t a = 0; a < 3; ++a)
         for (size_t c = 0; c < 2; ++c)
-            copyFromRing(ring[a][c], start, total, s.src[a][c].data());
+            copyFromRing(cap.ring[a][c], start, total, s.src[a][c].data());
 
     s.length = L;
     s.pre = X;
@@ -188,27 +173,7 @@ void Mosaic::process(float* const* ch, int numCh, int n, const Params& requested
         else if (wetActive && countdown > 0)
             m = std::min(m, countdown);
 
-        // record: raw plus the two low-passed copies
-        for (int c = 0; c < 2; ++c)
-        {
-            const float* in = ch[std::min(c, numCh - 1)] + pos;
-            std::copy_n(in, m, raw2[static_cast<size_t>(c)].data());
-            std::copy_n(in, m, raw4[static_cast<size_t>(c)].data());
-        }
-        float* p2[] { raw2[0].data(), raw2[1].data() };
-        float* p4[] { raw4[0].data(), raw4[1].data() };
-        lp2.process(p2, 2, m, 0.225f * static_cast<float>(sampleRate));
-        lp4.process(p4, 2, m, 0.1125f * static_cast<float>(sampleRate));
-        for (int f = 0; f < m; ++f)
-        {
-            for (size_t c = 0; c < 2; ++c)
-            {
-                ring[0][c][static_cast<size_t>(writePos)] = ch[std::min<size_t>(c, static_cast<size_t>(numCh) - 1)][pos + f];
-                ring[1][c][static_cast<size_t>(writePos)] = raw2[c][static_cast<size_t>(f)];
-                ring[2][c][static_cast<size_t>(writePos)] = raw4[c][static_cast<size_t>(f)];
-            }
-            writePos = (writePos + 1) & ringMask;
-        }
+        cap.write(ch[0] + pos, ch[numCh > 1 ? 1 : 0] + pos, m); // raw plus the two low-passed copies
 
         if (! wetActive)
             continue; // Mix 0: audio untouched (bit-exact); the ring keeps recording

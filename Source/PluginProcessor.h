@@ -2,6 +2,7 @@
 
 #include "Parameters.h"
 #include "dsp/AutoGain.h"
+#include "dsp/Cloud.h"
 #include "dsp/Lowpass.h"
 #include "dsp/ModDelay.h"
 #include "dsp/Mosaic.h"
@@ -41,6 +42,7 @@ public:
 
     float autoGainDb() const { return autoGain.gainDb(); } // tests; GUI meter later (make atomic then)
     int mosaicGrabCount() const { return mosaic.grabCount(); }
+    int cloudGrainCount() const { return cloud.grainsSpawned(); }
 
 private:
     std::atomic<float>* bendParam;
@@ -56,9 +58,10 @@ private:
     std::atomic<float>* familyParam;
     std::atomic<float>* variantParam;
 
-    // auto gain wraps the chain; chain = effect engine (Mosaic; other families later) -> pitch modulation -> reverb -> low-pass
+    // auto gain wraps the chain; chain = effect engine (Mosaic, Cloud; other families later) -> pitch modulation -> reverb -> low-pass
     grain::dsp::AutoGain autoGain;
     grain::dsp::Mosaic mosaic;
+    grain::dsp::Cloud cloud;
     grain::dsp::ModDelay modDelay;
     grain::dsp::Reverb reverb;
     grain::dsp::Lowpass lowpass;

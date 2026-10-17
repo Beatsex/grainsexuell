@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Lowpass.h"
+#include "Capture.h"
 
 #include <juce_audio_basics/juce_audio_basics.h>
 
@@ -40,7 +40,7 @@ public:
     int grabCount() const { return grabs.load(std::memory_order_relaxed); }
 
 private:
-    static constexpr int chunk = 512;
+    static constexpr int chunk = Capture::chunk;
     static constexpr std::array<float, numLayers> speeds { 0.5f, 1.0f, 2.0f, 4.0f };
     static constexpr std::array<int, numLayers> sourceOf { 0, 0, 1, 2 }; // raw, low-passed for 2x, low-passed for 4x
 
@@ -56,7 +56,7 @@ private:
         { { { 0.55f, -1 }, { 0.60f, 1 }, { 0.40f, -1 }, { 0.30f, 1 } } }, // D Tumble
     } };
 
-    using Stereo = std::array<std::vector<float>, 2>;
+    using Stereo = Capture::Stereo;
 
     struct Slot
     {
@@ -72,13 +72,9 @@ private:
     static float read(const float* b, int X, int L, int i0, float frac, bool reverse);
 
     double sampleRate = 48000.0;
-    int ringSize = 0, ringMask = 0, writePos = 0;
-    std::array<Stereo, 3> ring;
+    Capture cap;
     std::array<Slot, 2> slots;
     int cur = 0;
-
-    Lowpass lp2, lp4;
-    std::array<std::array<float, chunk>, 2> raw2, raw4;
 
     juce::SmoothedValue<float> mixSm, swarmSm;
     float dryGain = 1.0f, wetGain = 0.0f, lastMix = -1.0f;
