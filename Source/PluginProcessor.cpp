@@ -5,6 +5,7 @@ PluginProcessor::PluginProcessor()
                          .withInput("Input", juce::AudioChannelSet::stereo(), true)
                          .withOutput("Output", juce::AudioChannelSet::stereo(), true)),
       apvts(*this, nullptr, "state", grain::createLayout()),
+      presets(apvts, grain::presets::PresetManager::defaultUserFolder()),
       bendParam(apvts.getRawParameterValue(grain::ids::bend)),
       hazeParam(apvts.getRawParameterValue(grain::ids::haze)),
       hazeModeParam(apvts.getRawParameterValue(grain::ids::hazemode)),
@@ -115,13 +116,27 @@ juce::AudioProcessorEditor* PluginProcessor::createEditor()
 
 void PluginProcessor::getStateInformation(juce::MemoryBlock& destData)
 {
-    if (auto xml = apvts.copyState().createXml())
+    auto state = apvts.copyState();
+    state.setProperty("stateVersion", 1, nullptr);
+    state.setProperty("preset", presets.currentName(), nullptr);
+    if (auto xml = state.createXml())
         copyXmlToBinary(*xml, destData);
 }
 
 void PluginProcessor::setStateInformation(const void* data, int sizeInBytes)
 {
+    // a project file is untrusted input: a real state is a few KB, and entity declarations or deep nesting
+    // would hurt the recursive XML parser
+    constexpr int maxStateBytes = 1 << 20;
+    if (data == nullptr || sizeInBytes <= 0 || sizeInBytes > maxStateBytes
+        || ! grain::presets::PresetManager::isSafeXml({ static_cast<const char*>(data), static_cast<size_t>(sizeInBytes) }))
+        return;
+
     if (auto xml = getXmlFromBinary(data, sizeInBytes))
         if (xml->hasTagName(apvts.state.getType()))
-            apvts.replaceState(juce::ValueTree::fromXml(*xml));
+        {
+            const auto tree = juce::ValueTree::fromXml(*xml);
+            apvts.replaceState(tree);
+            presets.setCurrentName(tree.getProperty("preset").toString()); // states from before presets have none: ""
+        }
 }

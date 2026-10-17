@@ -9,6 +9,7 @@ add_executable(grain_tests
     ShardTest.cpp
     HoldTest.cpp
     LooperTest.cpp
+    PresetTest.cpp
     AllocGuard.cpp)
 
 target_sources(grain_tests PRIVATE ${GRAIN_CORE_SOURCES})

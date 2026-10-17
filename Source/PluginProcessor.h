@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Parameters.h"
+#include "presets/PresetManager.h"
 #include "dsp/AutoGain.h"
 #include "dsp/Cloud.h"
 #include "dsp/Hold.h"
@@ -33,16 +34,22 @@ public:
     bool isMidiEffect() const override { return false; }
     double getTailLengthSeconds() const override { return grain::dsp::Reverb::maxT60; }
 
-    int getNumPrograms() override { return 1; }
-    int getCurrentProgram() override { return 0; }
-    void setCurrentProgram(int) override {}
-    const juce::String getProgramName(int) override { return {}; }
+    // the host's preset menu lists the factory presets; user presets are saved and loaded through `presets`
+    int getNumPrograms() override { return grain::presets::numFactory; }
+    int getCurrentProgram() override { return std::max(0, presets.currentFactoryIndex()); }
+    void setCurrentProgram(int index) override { presets.applyFactory(index); }
+    const juce::String getProgramName(int index) override
+    {
+        return index >= 0 && index < grain::presets::numFactory ? juce::String(grain::presets::factory()[static_cast<size_t>(index)].name)
+                                                                 : juce::String();
+    }
     void changeProgramName(int, const juce::String&) override {}
 
     void getStateInformation(juce::MemoryBlock& destData) override;
     void setStateInformation(const void* data, int sizeInBytes) override;
 
     juce::AudioProcessorValueTreeState apvts;
+    grain::presets::PresetManager presets; // message thread only (file I/O, host notifications)
 
     float autoGainDb() const { return autoGain.gainDb(); } // tests; GUI meter later (make atomic then)
     int mosaicGrabCount() const { return mosaic.grabCount(); }

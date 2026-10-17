@@ -82,6 +82,18 @@ foreach(position 0 1)
             --at 7.0 loopreverse=1 --at 8.0 loopreverse=0 --at 8.5 loopburst=1 --at 10.0 loopburst=0 --at 10.5 loopundo=1)
 endforeach()
 
+# Factory presets: each one on plucked notes (WAVs: preset_00.wav ... preset_15.wav, for listening).
+foreach(n RANGE 0 15)
+    string(LENGTH "${n}" len)
+    if(len EQUAL 1)
+        set(nn "0${n}")
+    else()
+        set(nn "${n}")
+    endif()
+    add_test(NAME render_preset_${nn}
+        COMMAND grain_render --gen notes ${CMAKE_CURRENT_BINARY_DIR}/preset_${nn}.wav --seconds 8 --tail 4 --gain -6 --program ${n})
+endforeach()
+
 # Keeps the harness itself from rotting: generated tone must pass every check and come out unchanged.
 add_test(NAME render_smoke
     COMMAND grain_render --gen tone440 ${CMAKE_CURRENT_BINARY_DIR}/render_smoke.wav --set mix=0 --expect-identity)

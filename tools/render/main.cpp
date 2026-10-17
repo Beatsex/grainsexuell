@@ -22,6 +22,7 @@ struct Options
     double tail = 0.0; // extra silent seconds appended so reverb decay is rendered and checked
     double gainDb = 0.0; // input gain applied before processing (quiet / hot test sources)
     bool expectIdentity = false;
+    int program = -1; // --program N: start from factory preset N
     std::vector<std::pair<juce::String, float>> sets;
     struct Event { double seconds; juce::String id; float value; };
     std::vector<Event> events; // --at S id=value: set a parameter when the render reaches S seconds (block resolution)
@@ -31,7 +32,7 @@ int usage(const char* why)
 {
     std::fprintf(stderr,
                  "%s\nusage: grain_render <in.wav | --gen impulse|sweep|tone440|notes|silence> <out.wav> "
-                 "[--set id=value]... [--at S id=value]... [--sr N] [--block N] [--seconds S] [--tail S] [--gain dB] [--expect-identity]\n",
+                 "[--program N] [--set id=value]... [--at S id=value]... [--sr N] [--block N] [--seconds S] [--tail S] [--gain dB] [--expect-identity]\n",
                  why);
     return 2;
 }
@@ -51,6 +52,7 @@ bool parse(int argc, char** argv, Options& o)
         else if (a == "--tail") o.tail = next().getDoubleValue();
         else if (a == "--gain") o.gainDb = next().getDoubleValue();
         else if (a == "--expect-identity") o.expectIdentity = true;
+        else if (a == "--program") o.program = next().getIntValue();
         else if (a == "--set")
         {
             const auto kv = next();
@@ -174,6 +176,12 @@ int main(int argc, char** argv)
     layout.inputBuses.add(inChannels == 1 ? juce::AudioChannelSet::mono() : juce::AudioChannelSet::stereo());
     layout.outputBuses.add(juce::AudioChannelSet::stereo());
     if (! p.setBusesLayout(layout)) return usage("layout rejected");
+
+    if (o.program >= 0)
+    {
+        if (o.program >= p.getNumPrograms()) return usage("no such program");
+        p.setCurrentProgram(o.program); // factory preset first, so --set can still override single values
+    }
 
     for (auto& [id, value] : o.sets)
     {

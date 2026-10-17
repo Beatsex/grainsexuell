@@ -23,6 +23,8 @@ FetchContent_MakeAvailable(JUCE Catch2)
 set(GRAIN_CORE_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Parameters.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/PluginProcessor.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Source/presets/FactoryPresets.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Source/presets/PresetManager.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/dsp/Capture.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/dsp/Cloud.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/dsp/Hold.cpp
