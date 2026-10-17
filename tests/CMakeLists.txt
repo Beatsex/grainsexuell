@@ -1,6 +1,7 @@
 add_executable(grain_tests
     ParametersTest.cpp
     PassthroughTest.cpp
+    DspTest.cpp
     AllocGuard.cpp)
 
 target_sources(grain_tests PRIVATE ${GRAIN_CORE_SOURCES})

@@ -6,7 +6,7 @@
 #include <set>
 #include <string>
 
-TEST_CASE("parameter layout: 8 knobs + 2 selectors, unique ids, sane defaults")
+TEST_CASE("parameter layout: 8 knobs + 3 selectors, unique ids, sane defaults")
 {
     PluginProcessor p;
     std::set<std::string> seen;
@@ -34,10 +34,10 @@ TEST_CASE("parameter layout: 8 knobs + 2 selectors, unique ids, sane defaults")
         REQUIRE(param != nullptr);
         REQUIRE(seen.insert(id).second);
         REQUIRE(param->choices.size() == 4);
-        REQUIRE(param->getIndex() == 0);
+        REQUIRE(param->getIndex() == (std::string(id) == grain::ids::hazemode ? 1 : 0)); // Plate by default
     }
 
-    REQUIRE(p.getParameters().size() == 10);
+    REQUIRE(p.getParameters().size() == 11);
 }
 
 TEST_CASE("state round trip keeps parameter values")

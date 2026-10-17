@@ -79,6 +79,14 @@ TEST_CASE("silence in = silence out")
     REQUIRE(buffer.getMagnitude(0, blockSize) == 0.0f);
 }
 
+TEST_CASE("alloc guard fires (positive control)")
+{
+    allocguard::arm();
+    void* p = ::operator new(16); // direct call: a new-expression could be elided by the compiler
+    ::operator delete(p);
+    REQUIRE(allocguard::disarm() >= 1);
+}
+
 TEST_CASE("processBlock does not allocate")
 {
     PluginProcessor p;

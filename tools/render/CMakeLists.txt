@@ -5,6 +5,15 @@ target_include_directories(grain_render PRIVATE ${GRAIN_INCLUDE_DIR})
 target_compile_definitions(grain_render PRIVATE ${GRAIN_JUCE_DEFS})
 target_link_libraries(grain_render PRIVATE ${GRAIN_JUCE_LIBS} juce::juce_audio_formats)
 
+foreach(mode 0 1 2 3)
+    add_test(NAME render_haze_mode${mode}
+        COMMAND grain_render --gen impulse ${CMAKE_CURRENT_BINARY_DIR}/haze${mode}.wav --set haze=0.5 --set hazemode=${mode} --tail 10)
+endforeach()
+add_test(NAME render_dusk
+    COMMAND grain_render --gen sweep ${CMAKE_CURRENT_BINARY_DIR}/dusk.wav --set dusk=800)
+add_test(NAME render_bend
+    COMMAND grain_render --gen tone440 ${CMAKE_CURRENT_BINARY_DIR}/bend.wav --set bend=1)
+
 # Keeps the harness itself from rotting: generated tone must pass every check and come out unchanged.
 add_test(NAME render_smoke
     COMMAND grain_render --gen tone440 ${CMAKE_CURRENT_BINARY_DIR}/render_smoke.wav --expect-identity)

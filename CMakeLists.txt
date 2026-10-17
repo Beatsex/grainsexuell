@@ -22,7 +22,8 @@ FetchContent_MakeAvailable(JUCE Catch2)
 # Add Source/dsp/*.cpp here as the DSP classes appear.
 set(GRAIN_CORE_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Parameters.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/Source/PluginProcessor.cpp)
+    ${CMAKE_CURRENT_SOURCE_DIR}/Source/PluginProcessor.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Source/dsp/Reverb.cpp)
 set(GRAIN_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Source)
 set(GRAIN_JUCE_LIBS
     juce::juce_audio_utils

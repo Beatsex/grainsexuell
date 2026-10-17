@@ -32,6 +32,8 @@ juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
         juce::ParameterID { ids::family, 1 }, "Family", juce::StringArray { "Mosaic", "Cloud", "Shard", "Tap" }, 0));
     layout.add(std::make_unique<juce::AudioParameterChoice>(
         juce::ParameterID { ids::variant, 1 }, "Variant", juce::StringArray { "A", "B", "C", "D" }, 0));
+    layout.add(std::make_unique<juce::AudioParameterChoice>(
+        juce::ParameterID { ids::hazemode, 1 }, "Haze Mode", juce::StringArray { "Room", "Plate", "Hall", "Swell" }, 1));
 
     return layout;
 }
