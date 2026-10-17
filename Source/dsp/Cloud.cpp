@@ -103,6 +103,9 @@ void Cloud::spawn(const Params& p, int framesIntoChunk, float density, int lengt
 
 void Cloud::process(float* const* ch, int numCh, int n, const Params& requested)
 {
+    if (cap.size == 0)
+        return; // process before prepare: leave the audio alone
+
     const auto unit = [](float x) { return std::isfinite(x) ? std::clamp(x, 0.0f, 1.0f) : 0.0f; };
     Params p = requested;
     p.swarm = unit(requested.swarm);
@@ -126,7 +129,8 @@ void Cloud::process(float* const* ch, int numCh, int n, const Params& requested)
     // Grains are normalised as if they added up incoherently (1/sqrt(N)); a steady tone adds coherently, up to
     // 0.82*sqrt(N) times louder. Scaling the feedback by that worst case keeps the loop gain below Tail*0.85.
     const float overlap = density * static_cast<float>(lengthFrames) / static_cast<float>(sampleRate);
-    const float feedback = p.tail * maxFeedback / std::max(1.0f, 0.82f * std::sqrt(overlap));
+    // sparse clouds: a lone grain is up to 1.63x (1/sqrt(0.375)) louder than its source, so the divisor never drops below that
+    const float feedback = p.tail * maxFeedback / std::max(1.63f, 0.82f * std::sqrt(overlap));
     const double meanGap = sampleRate / density;
     const int mask = cap.mask;
 

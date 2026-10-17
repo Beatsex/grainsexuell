@@ -126,6 +126,9 @@ void Mosaic::grab(const Params& p)
 
 void Mosaic::process(float* const* ch, int numCh, int n, const Params& requested)
 {
+    if (cap.size == 0)
+        return; // process before prepare: leave the audio alone
+
     // Slot and ring sizes assume 0..1 (Span 1 is exactly the slot size), so never trust the caller.
     const auto unit = [](float x) { return std::isfinite(x) ? std::clamp(x, 0.0f, 1.0f) : 0.0f; };
     Params p = requested;
