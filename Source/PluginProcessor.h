@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Parameters.h"
+#include "midi/MidiMap.h"
 #include "presets/PresetManager.h"
 #include "dsp/AutoGain.h"
 #include "dsp/Cloud.h"
@@ -29,7 +30,7 @@ public:
     bool hasEditor() const override { return true; }
 
     const juce::String getName() const override { return "grainsexuell"; }
-    bool acceptsMidi() const override { return false; }
+    bool acceptsMidi() const override { return true; } // CC -> parameter (learn), see midi/MidiMap.h
     bool producesMidi() const override { return false; }
     bool isMidiEffect() const override { return false; }
     double getTailLengthSeconds() const override { return grain::dsp::Reverb::maxT60; }
@@ -51,12 +52,31 @@ public:
     juce::AudioProcessorValueTreeState apvts;
     grain::presets::PresetManager presets; // message thread only (file I/O, host notifications)
 
-    float autoGainDb() const { return autoGain.gainDb(); } // tests; GUI meter later (make atomic then)
+    grain::midi::MidiMap midiMap; // CC learn / assign from the GUI thread; read on the audio thread
+    std::atomic<int> editorWidth { 760 }; // remembered in the state; the editor keeps a fixed aspect ratio
+
+    // message thread (a timer calls it): applies CC values the audio thread queued and finishes a MIDI learn
+    void applyPendingMidi();
+
+    float autoGainDb() const { return autoGainShown.load(std::memory_order_relaxed); }
     int mosaicGrabCount() const { return mosaic.grabCount(); }
     int cloudGrainCount() const { return cloud.grainsSpawned(); }
     int shardSliceCount() const { return shard.slicesPlayed(); }
 
 private:
+    void loadMidiMap(const juce::ValueTree& map);
+
+    std::array<juce::RangedAudioParameter*, grain::ids::mappable.size()> mappedParams {};
+    std::atomic<float> autoGainShown { 0.0f };
+    std::array<std::atomic<float>, grain::ids::mappable.size()> pendingCc; // normalised value from the audio thread, < 0 = none
+    struct MidiPump : juce::Timer
+    {
+        explicit MidiPump(PluginProcessor& p) : owner(p) {}
+        ~MidiPump() override { stopTimer(); }
+        void timerCallback() override { owner.applyPendingMidi(); }
+        PluginProcessor& owner;
+    };
+
     std::atomic<float>* bendParam;
     std::atomic<float>* hazeParam;
     std::atomic<float>* hazeModeParam;
@@ -89,4 +109,5 @@ private:
     grain::dsp::ModDelay modDelay;
     grain::dsp::Reverb reverb;
     grain::dsp::Lowpass lowpass;
+    MidiPump midiPump { *this }; // last member: stops first
 };

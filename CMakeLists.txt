@@ -23,6 +23,7 @@ FetchContent_MakeAvailable(JUCE Catch2)
 set(GRAIN_CORE_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Parameters.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/PluginProcessor.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Source/PluginEditor.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/presets/FactoryPresets.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/presets/PresetManager.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/dsp/Capture.cpp
@@ -55,7 +56,7 @@ juce_add_plugin(grainsexuell
     PLUGIN_MANUFACTURER_CODE Gsxl
     PLUGIN_CODE Gr01
     IS_SYNTH FALSE
-    NEEDS_MIDI_INPUT FALSE
+    NEEDS_MIDI_INPUT TRUE
     NEEDS_MIDI_OUTPUT FALSE
     COPY_PLUGIN_AFTER_BUILD FALSE)
 

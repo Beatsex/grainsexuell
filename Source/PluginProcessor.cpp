@@ -1,4 +1,5 @@
 #include "PluginProcessor.h"
+#include "PluginEditor.h"
 
 PluginProcessor::PluginProcessor()
     : AudioProcessor(BusesProperties()
@@ -27,6 +28,22 @@ PluginProcessor::PluginProcessor()
       familyParam(apvts.getRawParameterValue(grain::ids::family)),
       variantParam(apvts.getRawParameterValue(grain::ids::variant))
 {
+    for (size_t i = 0; i < mappedParams.size(); ++i)
+    {
+        mappedParams[i] = apvts.getParameter(grain::ids::mappable[i]);
+        pendingCc[i].store(-1.0f);
+    }
+    // CCs are applied on the message thread (hosts expect parameter edits there); no message loop (tests): no pump
+    if (juce::MessageManager::getInstanceWithoutCreating() != nullptr)
+        midiPump.startTimerHz(100);
+}
+
+void PluginProcessor::applyPendingMidi()
+{
+    midiMap.pollLearn();
+    for (size_t i = 0; i < mappedParams.size(); ++i)
+        if (const float v = pendingCc[i].exchange(-1.0f, std::memory_order_acq_rel); v >= 0.0f && mappedParams[i] != nullptr)
+            mappedParams[i]->setValueNotifyingHost(v);
 }
 
 void PluginProcessor::prepareToPlay(double sampleRate, int)
@@ -53,9 +70,20 @@ bool PluginProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const
            || (out == juce::AudioChannelSet::mono() && in == out);
 }
 
-void PluginProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer&)
+void PluginProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midi)
 {
     juce::ScopedNoDenormals noDenormals;
+
+    // CC -> parameter: only queue the value here; applyPendingMidi() (message thread, 100 Hz timer) applies it
+    for (const auto metadata : midi)
+    {
+        const auto message = metadata.getMessage();
+        if (! message.isController())
+            continue;
+        if (const auto hit = midiMap.onCc(message.getControllerNumber(), message.getControllerValue()))
+            if (hit->param >= 0 && static_cast<size_t>(hit->param) < pendingCc.size())
+                pendingCc[static_cast<size_t>(hit->param)].store(hit->normalised, std::memory_order_release);
+    }
 
     // Mono in on a stereo bus: JUCE leaves channel 1 undefined, so fan out. (Effect engine: Phase 3+.)
     if (getTotalNumInputChannels() == 1 && buffer.getNumChannels() == 2)
@@ -107,11 +135,12 @@ void PluginProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiB
     autoGain.end(ch, numCh, n);
     if (! loopPre)
         looper.process(ch, numCh, n, loopParams); // records and plays the finished output
+    autoGainShown.store(autoGain.gainDb(), std::memory_order_relaxed);
 }
 
 juce::AudioProcessorEditor* PluginProcessor::createEditor()
 {
-    return new juce::GenericAudioProcessorEditor(*this); // real GUI is Phase 10
+    return new PluginEditor(*this);
 }
 
 void PluginProcessor::getStateInformation(juce::MemoryBlock& destData)
@@ -119,8 +148,28 @@ void PluginProcessor::getStateInformation(juce::MemoryBlock& destData)
     auto state = apvts.copyState();
     state.setProperty("stateVersion", 1, nullptr);
     state.setProperty("preset", presets.currentName(), nullptr);
+    state.setProperty("editorWidth", editorWidth.load(), nullptr);
+
+    juce::ValueTree map("MidiMap");
+    for (size_t i = 0; i < grain::ids::mappable.size(); ++i)
+        if (const int cc = midiMap.ccFor(static_cast<int>(i)); cc >= 0)
+            map.appendChild(juce::ValueTree("CC", { { "id", grain::ids::mappable[i] }, { "cc", cc } }), nullptr);
+    state.appendChild(map, nullptr);
     if (auto xml = state.createXml())
         copyXmlToBinary(*xml, destData);
+}
+
+void PluginProcessor::loadMidiMap(const juce::ValueTree& map)
+{
+    midiMap.clearAll();
+    for (const auto& e : map)
+    {
+        const auto id = e.getProperty("id").toString();
+        const int cc = e.getProperty("cc", -1);
+        for (size_t i = 0; i < grain::ids::mappable.size(); ++i)
+            if (id == grain::ids::mappable[i] && cc >= 0 && cc < grain::midi::MidiMap::numCc)
+                midiMap.assign(cc, static_cast<int>(i));
+    }
 }
 
 void PluginProcessor::setStateInformation(const void* data, int sizeInBytes)
@@ -135,7 +184,11 @@ void PluginProcessor::setStateInformation(const void* data, int sizeInBytes)
     if (auto xml = getXmlFromBinary(data, sizeInBytes))
         if (xml->hasTagName(apvts.state.getType()))
         {
-            const auto tree = juce::ValueTree::fromXml(*xml);
+            auto tree = juce::ValueTree::fromXml(*xml);
+            loadMidiMap(tree.getChildWithName("MidiMap"));
+            if (auto map = tree.getChildWithName("MidiMap"); map.isValid())
+                tree.removeChild(map, nullptr); // not a parameter node
+            editorWidth = std::clamp(static_cast<int>(tree.getProperty("editorWidth", 760)), 480, 2400);
             apvts.replaceState(tree);
             presets.setCurrentName(tree.getProperty("preset").toString()); // states from before presets have none: ""
         }
