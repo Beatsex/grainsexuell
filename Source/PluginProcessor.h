@@ -4,6 +4,7 @@
 #include "dsp/AutoGain.h"
 #include "dsp/Lowpass.h"
 #include "dsp/ModDelay.h"
+#include "dsp/Mosaic.h"
 #include "dsp/Reverb.h"
 
 #include <atomic>
@@ -39,6 +40,7 @@ public:
     juce::AudioProcessorValueTreeState apvts;
 
     float autoGainDb() const { return autoGain.gainDb(); } // tests; GUI meter later (make atomic then)
+    int mosaicGrabCount() const { return mosaic.grabCount(); }
 
 private:
     std::atomic<float>* bendParam;
@@ -46,9 +48,17 @@ private:
     std::atomic<float>* hazeModeParam;
     std::atomic<float>* duskParam;
     std::atomic<float>* autoGainParam;
+    std::atomic<float>* swarmParam;
+    std::atomic<float>* tailParam;
+    std::atomic<float>* spanParam;
+    std::atomic<float>* scatterParam;
+    std::atomic<float>* mixParam;
+    std::atomic<float>* familyParam;
+    std::atomic<float>* variantParam;
 
-    // auto gain wraps the chain; chain = (not yet written) effect engine -> pitch modulation -> reverb -> low-pass
+    // auto gain wraps the chain; chain = effect engine (Mosaic; other families later) -> pitch modulation -> reverb -> low-pass
     grain::dsp::AutoGain autoGain;
+    grain::dsp::Mosaic mosaic;
     grain::dsp::ModDelay modDelay;
     grain::dsp::Reverb reverb;
     grain::dsp::Lowpass lowpass;

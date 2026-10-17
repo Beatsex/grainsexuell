@@ -9,13 +9,21 @@ PluginProcessor::PluginProcessor()
       hazeParam(apvts.getRawParameterValue(grain::ids::haze)),
       hazeModeParam(apvts.getRawParameterValue(grain::ids::hazemode)),
       duskParam(apvts.getRawParameterValue(grain::ids::dusk)),
-      autoGainParam(apvts.getRawParameterValue(grain::ids::autogain))
+      autoGainParam(apvts.getRawParameterValue(grain::ids::autogain)),
+      swarmParam(apvts.getRawParameterValue(grain::ids::swarm)),
+      tailParam(apvts.getRawParameterValue(grain::ids::tail)),
+      spanParam(apvts.getRawParameterValue(grain::ids::span)),
+      scatterParam(apvts.getRawParameterValue(grain::ids::scatter)),
+      mixParam(apvts.getRawParameterValue(grain::ids::mix)),
+      familyParam(apvts.getRawParameterValue(grain::ids::family)),
+      variantParam(apvts.getRawParameterValue(grain::ids::variant))
 {
 }
 
 void PluginProcessor::prepareToPlay(double sampleRate, int)
 {
     autoGain.prepare(sampleRate);
+    mosaic.prepare(sampleRate);
     modDelay.prepare(sampleRate);
     reverb.prepare(sampleRate);
     lowpass.prepare(sampleRate);
@@ -53,6 +61,9 @@ void PluginProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiB
             ch[c][i] = std::isfinite(ch[c][i]) ? std::clamp(ch[c][i], -1.0e4f, 1.0e4f) : 0.0f;
 
     autoGain.begin(ch, numCh, n, autoGainParam->load() > 0.5f);
+    mosaic.process(ch, numCh, n,
+                   { swarmParam->load(), tailParam->load(), spanParam->load(), scatterParam->load(), mixParam->load(),
+                     static_cast<int>(variantParam->load() + 0.5f), static_cast<int>(familyParam->load() + 0.5f) == 0 });
     modDelay.process(ch, numCh, n, bendParam->load());
     reverb.process(ch, numCh, n, hazeParam->load(), static_cast<int>(hazeModeParam->load() + 0.5f));
     lowpass.process(ch, numCh, n, duskParam->load());

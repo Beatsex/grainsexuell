@@ -3,6 +3,7 @@ add_executable(grain_tests
     PassthroughTest.cpp
     DspTest.cpp
     AutoGainTest.cpp
+    MosaicTest.cpp
     AllocGuard.cpp)
 
 target_sources(grain_tests PRIVATE ${GRAIN_CORE_SOURCES})

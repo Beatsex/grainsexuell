@@ -1,7 +1,7 @@
 // Offline render harness: WAV (or generated signal) in, plugin processor with fixed parameters, WAV out,
 // then the automatic checks (identity, finite, bounded). Exit code 0 = all checks passed, 1 = a check failed, 2 = bad usage.
 //
-//   grain_render <in.wav | --gen impulse|sweep|tone440|silence> <out.wav>
+//   grain_render <in.wav | --gen impulse|sweep|tone440|notes|silence> <out.wav>
 //                [--set id=value]... [--sr 48000] [--block 512] [--seconds 2] [--tail 0] [--gain dB] [--expect-identity]
 
 #include "PluginProcessor.h"
@@ -28,7 +28,7 @@ struct Options
 int usage(const char* why)
 {
     std::fprintf(stderr,
-                 "%s\nusage: grain_render <in.wav | --gen impulse|sweep|tone440|silence> <out.wav> "
+                 "%s\nusage: grain_render <in.wav | --gen impulse|sweep|tone440|notes|silence> <out.wav> "
                  "[--set id=value]... [--sr N] [--block N] [--seconds S] [--tail S] [--gain dB] [--expect-identity]\n",
                  why);
     return 2;
@@ -72,6 +72,19 @@ bool generate(const juce::String& name, double sr, double seconds, juce::AudioBu
 
     if (name == "impulse")
         b.setSample(0, n / 10, 1.0f), b.setSample(1, n / 10, 1.0f);
+    else if (name == "notes")
+    {
+        // decaying plucked tones, a new pitch every 0.5 s: a more realistic loop source than a steady sine
+        constexpr double pitches[] { 220.0, 277.18, 329.63, 440.0, 329.63, 246.94 };
+        for (int i = 0; i < n; ++i)
+        {
+            const double t = i / sr, k = std::floor(t / 0.5), tt = t - k * 0.5, f = pitches[static_cast<int>(k) % 6];
+            const double env = std::exp(-tt / 0.2) * std::min(1.0, tt / 0.005);
+            const double v = (std::sin(twoPi * f * tt) + 0.3 * std::sin(twoPi * 2 * f * tt) + 0.15 * std::sin(twoPi * 3 * f * tt)) / 1.45;
+            b.setSample(0, i, static_cast<float>(0.5 * env * v));
+            b.setSample(1, i, b.getSample(0, i));
+        }
+    }
     else if (name == "tone440" || name == "sweep")
     {
         // log sweep 20 Hz -> min(20 kHz, 0.45 sr); phase integral of f(t) = f0 * k^t

@@ -17,6 +17,7 @@ void configure(PluginProcessor& p, const juce::AudioChannelSet& in, const juce::
     REQUIRE(p.setBusesLayout(layout));
     p.setRateAndBufferSizeDetails(48000.0, blockSize);
     p.prepareToPlay(48000.0, blockSize);
+    p.apvts.getParameter(grain::ids::mix)->setValueNotifyingHost(0.0f); // Mix 0 = bit-exact dry through the engine
 }
 
 float testSample(int ch, int i)
