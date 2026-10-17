@@ -7,6 +7,7 @@
 #include "dsp/ModDelay.h"
 #include "dsp/Mosaic.h"
 #include "dsp/Reverb.h"
+#include "dsp/Tap.h"
 
 #include <atomic>
 
@@ -62,6 +63,7 @@ private:
     grain::dsp::AutoGain autoGain;
     grain::dsp::Mosaic mosaic;
     grain::dsp::Cloud cloud;
+    grain::dsp::Tap tap;
     grain::dsp::ModDelay modDelay;
     grain::dsp::Reverb reverb;
     grain::dsp::Lowpass lowpass;

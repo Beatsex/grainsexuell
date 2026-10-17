@@ -369,7 +369,7 @@ TEST_CASE("processor: other families are dry, Mosaic grabs without allocating")
     PluginProcessor p;
     configure(p, sr, 256);
     setParam(p, grain::ids::mix, 1.0f);
-    setParam(p, grain::ids::family, 3.0f); // Tap: not written yet, must be bit-exact dry
+    setParam(p, grain::ids::family, 2.0f); // Shard: not written yet, must be bit-exact dry
 
     const auto src = noise(1.0, 0.3f, 4);
     juce::AudioBuffer<float> b(2, 256);

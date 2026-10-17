@@ -26,7 +26,8 @@ set(GRAIN_CORE_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/dsp/Capture.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/dsp/Cloud.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/dsp/Mosaic.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/Source/dsp/Reverb.cpp)
+    ${CMAKE_CURRENT_SOURCE_DIR}/Source/dsp/Reverb.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Source/dsp/Tap.cpp)
 set(GRAIN_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Source)
 set(GRAIN_JUCE_LIBS
     juce::juce_audio_utils
