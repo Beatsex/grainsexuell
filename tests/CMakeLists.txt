@@ -6,6 +6,7 @@ add_executable(grain_tests
     MosaicTest.cpp
     CloudTest.cpp
     TapTest.cpp
+    ShardTest.cpp
     AllocGuard.cpp)
 
 target_sources(grain_tests PRIVATE ${GRAIN_CORE_SOURCES})

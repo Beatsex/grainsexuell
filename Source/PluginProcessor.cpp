@@ -25,6 +25,7 @@ void PluginProcessor::prepareToPlay(double sampleRate, int)
     autoGain.prepare(sampleRate);
     mosaic.prepare(sampleRate);
     cloud.prepare(sampleRate);
+    shard.prepare(sampleRate);
     tap.prepare(sampleRate);
     modDelay.prepare(sampleRate);
     reverb.prepare(sampleRate);
@@ -74,6 +75,7 @@ void PluginProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiB
         if (auto position = head->getPosition())
             if (auto hostBpm = position->getBpm())
                 bpm = *hostBpm;
+    shard.process(ch, numCh, n, { swarm, tail, span, scatter, mix, variant, family == 2, bpm });
     tap.process(ch, numCh, n, { swarm, tail, span, scatter, mix, variant, family == 3, bpm });
     modDelay.process(ch, numCh, n, bendParam->load());
     reverb.process(ch, numCh, n, hazeParam->load(), static_cast<int>(hazeModeParam->load() + 0.5f));

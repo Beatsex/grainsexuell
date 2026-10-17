@@ -52,6 +52,16 @@ add_test(NAME render_tap_feedback
     COMMAND grain_render --gen notes ${CMAKE_CURRENT_BINARY_DIR}/tap_feedback.wav --seconds 8 --tail 6
         --set family=3 --set tail=0.8 --set scatter=0.6 --set swarm=0.64 --set mix=0.6)
 
+# Shard: every variant on plucked notes at 1/16 (120 BPM fallback), wet only, plus a feedback case.
+foreach(variant 0 1 2 3)
+    add_test(NAME render_shard_variant${variant}
+        COMMAND grain_render --gen notes ${CMAKE_CURRENT_BINARY_DIR}/shard_v${variant}.wav --seconds 8 --tail 3
+            --gain -6 --set family=2 --set variant=${variant} --set swarm=0.5 --set span=0.5 --set scatter=0.4 --set mix=1)
+endforeach()
+add_test(NAME render_shard_feedback
+    COMMAND grain_render --gen notes ${CMAKE_CURRENT_BINARY_DIR}/shard_feedback.wav --seconds 8 --tail 6
+        --set family=2 --set tail=0.8 --set scatter=0.6 --set swarm=0.5 --set mix=0.6)
+
 # Keeps the harness itself from rotting: generated tone must pass every check and come out unchanged.
 add_test(NAME render_smoke
     COMMAND grain_render --gen tone440 ${CMAKE_CURRENT_BINARY_DIR}/render_smoke.wav --set mix=0 --expect-identity)

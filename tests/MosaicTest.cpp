@@ -369,22 +369,18 @@ TEST_CASE("processor: other families are dry, Mosaic grabs without allocating")
     PluginProcessor p;
     configure(p, sr, 256);
     setParam(p, grain::ids::mix, 1.0f);
-    setParam(p, grain::ids::family, 2.0f); // Shard: not written yet, must be bit-exact dry
+    setParam(p, grain::ids::family, 1.0f); // Cloud: Mosaic must stay idle
 
     const auto src = noise(1.0, 0.3f, 4);
     juce::AudioBuffer<float> b(2, 256);
     juce::MidiBuffer midi;
-    bool exact = true;
     for (int blk = 0; blk < 40; ++blk)
     {
         for (int c = 0; c < 2; ++c)
             std::copy_n(src.begin() + blk * 256, 256, b.getWritePointer(c));
         p.processBlock(b, midi);
-        for (int c = 0; c < 2; ++c)
-            for (int i = 0; i < 256; ++i)
-                exact &= b.getSample(c, i) == src[static_cast<size_t>(blk * 256 + i)];
     }
-    REQUIRE(exact);
+    REQUIRE(p.mosaicGrabCount() == 0);
 
     setParam(p, grain::ids::family, 0.0f);
     setParam(p, grain::ids::swarm, 1.0f);

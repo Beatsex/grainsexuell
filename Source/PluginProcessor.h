@@ -7,6 +7,7 @@
 #include "dsp/ModDelay.h"
 #include "dsp/Mosaic.h"
 #include "dsp/Reverb.h"
+#include "dsp/Shard.h"
 #include "dsp/Tap.h"
 
 #include <atomic>
@@ -44,6 +45,7 @@ public:
     float autoGainDb() const { return autoGain.gainDb(); } // tests; GUI meter later (make atomic then)
     int mosaicGrabCount() const { return mosaic.grabCount(); }
     int cloudGrainCount() const { return cloud.grainsSpawned(); }
+    int shardSliceCount() const { return shard.slicesPlayed(); }
 
 private:
     std::atomic<float>* bendParam;
@@ -63,6 +65,7 @@ private:
     grain::dsp::AutoGain autoGain;
     grain::dsp::Mosaic mosaic;
     grain::dsp::Cloud cloud;
+    grain::dsp::Shard shard;
     grain::dsp::Tap tap;
     grain::dsp::ModDelay modDelay;
     grain::dsp::Reverb reverb;
