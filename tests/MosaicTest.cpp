@@ -5,6 +5,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <cmath>
+#include <limits>
 #include <numbers>
 #include <random>
 #include <vector>
@@ -257,6 +258,64 @@ TEST_CASE("mosaic: wet level stays within 6 dB of the dry level")
         INFO("variant " << v << ": " << db << " dB");
         REQUIRE(std::abs(db) < 6.0);
     }
+}
+
+TEST_CASE("mosaic: output does not depend on the host block size")
+{
+    const auto x = noise(2.0, 0.5f, 11);
+    auto p = wet(2, 0.8f);
+    p.scatter = 0.6f;
+    p.span = 0.3f;
+    Mosaic ref;
+    ref.prepare(sr);
+    const auto expected = run(ref, x, p, 512);
+    for (int block : { 480, 64, 1 })
+    {
+        Mosaic m;
+        m.prepare(sr);
+        INFO("block " << block);
+        REQUIRE(run(m, x, p, block) == expected);
+    }
+}
+
+TEST_CASE("mosaic: out-of-range parameters are clamped, not trusted")
+{
+    for (double rate : { 44100.0, 192000.0 })
+    {
+        Mosaic m;
+        m.prepare(rate);
+        Mosaic::Params p;
+        p.span = 5.0f;
+        p.scatter = 7.0f;
+        p.swarm = -3.0f;
+        p.tail = std::numeric_limits<float>::quiet_NaN();
+        p.mix = 9.0f;
+        p.variant = 99;
+        std::vector<float> l(static_cast<size_t>(rate)), r(l.size());
+        std::mt19937 rng(5);
+        std::uniform_real_distribution<float> d(-0.5f, 0.5f);
+        for (size_t i = 0; i < l.size(); ++i)
+            l[i] = d(rng), r[i] = d(rng);
+        bool finite = true;
+        for (size_t pos = 0; pos < l.size(); pos += 512)
+        {
+            const int n = static_cast<int>(std::min<size_t>(512, l.size() - pos));
+            float* ch[] { l.data() + pos, r.data() + pos };
+            m.process(ch, 2, n, p);
+            for (int i = 0; i < n; ++i)
+                finite &= std::isfinite(l[pos + static_cast<size_t>(i)]) && std::isfinite(r[pos + static_cast<size_t>(i)]);
+        }
+        REQUIRE(finite);
+        REQUIRE(m.grabCount() >= 1);
+    }
+}
+
+TEST_CASE("mosaic: the empty first loop is replaced quickly, even at Swarm 0")
+{
+    Mosaic m;
+    m.prepare(sr);
+    run(m, sine(440.0, 0.5), wet(0, 0.0f)); // Swarm 0 = a grab every 3 s, but the startup grab follows after 80 ms
+    REQUIRE(m.grabCount() >= 2);
 }
 
 TEST_CASE("mosaic: deterministic")

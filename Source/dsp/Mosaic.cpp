@@ -68,8 +68,9 @@ void Mosaic::prepare(double sr)
     wetGain = 0.0f;
     lastMix = -1.0f;
     countdown = static_cast<int>(0.25 * sr);
-    grabs = 0;
+    grabs.store(0, std::memory_order_relaxed);
     primed = wasActive = forceGrab = false;
+    startup = true;
     rng = 0x9E3779B9u; // fixed seed: renders and tests repeat exactly
 }
 
@@ -115,6 +116,9 @@ void Mosaic::grab(const Params& p)
     const int jitter = p.scatter > 0.0f ? static_cast<int>(rand01() * p.scatter * 0.25f * static_cast<float>(sampleRate)) : 0;
     const int start = ((writePos - jitter - total) % ringSize + ringSize) % ringSize;
 
+    // ponytail: copies all 3 sources x 2 channels at once (about 0.1 ms at 48 kHz, an estimated 0.5-1.5 ms at
+    // 192 kHz with Span 1: too long for 64-128 sample buffers there). Upgrade: spread the copy over several
+    // chunks (the 2 s ring is not overwritten for ~0.9 s) and swap `cur` when it is done.
     for (size_t a = 0; a < 3; ++a)
         for (size_t c = 0; c < 2; ++c)
             copyFromRing(ring[a][c], start, total, s.src[a][c].data());
@@ -132,11 +136,21 @@ void Mosaic::grab(const Params& p)
     s.fadeTarget = 1.0f;
     slots[static_cast<size_t>(cur)].fadeTarget = 0.0f;
     cur = 1 - cur;
-    ++grabs;
+    grabs.fetch_add(1, std::memory_order_relaxed);
 }
 
-void Mosaic::process(float* const* ch, int numCh, int n, const Params& p)
+void Mosaic::process(float* const* ch, int numCh, int n, const Params& requested)
 {
+    // Slot and ring sizes assume 0..1 (Span 1 is exactly the slot size), so never trust the caller.
+    const auto unit = [](float x) { return std::isfinite(x) ? std::clamp(x, 0.0f, 1.0f) : 0.0f; };
+    Params p = requested;
+    p.swarm = unit(requested.swarm);
+    p.tail = unit(requested.tail);
+    p.span = unit(requested.span);
+    p.scatter = unit(requested.scatter);
+    p.mix = unit(requested.mix);
+    p.variant = std::clamp(requested.variant, 0, 3);
+
     const float mixTarget = p.enabled ? p.mix : 0.0f;
     if (! primed)
     {
@@ -160,9 +174,19 @@ void Mosaic::process(float* const* ch, int numCh, int n, const Params& p)
     const float tailRate = (1.0f - smooth(p.tail, 0.9f, 1.0f)) / (0.15f * std::pow(80.0f, p.tail)); // 1/s
     const float decayMul = std::exp(-tailRate / static_cast<float>(sampleRate));
 
-    for (int pos = 0; pos < n; pos += chunk)
+    for (int pos = 0, m = 0; pos < n; pos += m)
     {
-        const int m = std::min(chunk, n - pos);
+        const bool wetActive = mixSm.isSmoothing() || mixSm.getTargetValue() > 0.0f;
+        if (wetActive && ! wasActive)
+            forceGrab = true;
+        wasActive = wetActive;
+
+        // A chunk never crosses the next grab time, so grabs land on the exact frame at any block size.
+        m = std::min(chunk, n - pos);
+        if (wetActive && forceGrab)
+            m = 1; // a forced grab (start, variant change) lands on the first frame, not at a chunk end
+        else if (wetActive && countdown > 0)
+            m = std::min(m, countdown);
 
         // record: raw plus the two low-passed copies
         for (int c = 0; c < 2; ++c)
@@ -186,36 +210,8 @@ void Mosaic::process(float* const* ch, int numCh, int n, const Params& p)
             writePos = (writePos + 1) & ringMask;
         }
 
-        const bool wetActive = mixSm.isSmoothing() || mixSm.getTargetValue() > 0.0f;
-        if (wetActive && ! wasActive)
-        {
-            forceGrab = true;
-            wasActive = true;
-        }
-        else if (! wetActive)
-        {
-            wasActive = false;
+        if (! wetActive)
             continue; // Mix 0: audio untouched (bit-exact); the ring keeps recording
-        }
-
-        // The grab is made at the end of the chunk's recording, so it never sees audio newer than this chunk.
-        // (Per-frame grabbing would need the ring to be written frame by frame; chunk granularity is fine:
-        // 512 frames is about 11 ms.)
-        if (forceGrab || (countdown -= m) <= 0)
-        {
-            if (slots[static_cast<size_t>(1 - cur)].fade <= 0.0f)
-            {
-                grab(p);
-                forceGrab = false;
-                const float jitter = 1.0f + p.scatter * 0.4f * (rand01() * 2.0f - 1.0f);
-                // A loop must get at least two passes, or at high Swarm + long Span it never loops (at 1x it
-                // would just be a delayed copy of the input, the slower layers restart before completing).
-                const double interval = std::max(3.0 * std::pow(0.04, p.swarm) * sampleRate, 2.0 * slots[static_cast<size_t>(cur)].length);
-                countdown = static_cast<int>(interval * jitter);
-            }
-            else
-                forceGrab = true; // other slot still fading out: retry next chunk
-        }
 
         for (int f = 0; f < m; ++f)
         {
@@ -270,6 +266,29 @@ void Mosaic::process(float* const* ch, int numCh, int n, const Params& p)
                 float* r = ch[1] + pos + f;
                 *r = *r * dryGain + wetR * wetGain;
             }
+        }
+
+        // Grab after the chunk is rendered: the new loop starts on the next frame, and the chunk ended exactly
+        // when the countdown ran out, so timing does not depend on the host block size.
+        if (forceGrab || (countdown -= m) <= 0)
+        {
+            if (slots[static_cast<size_t>(1 - cur)].fade <= 0.0f)
+            {
+                grab(p);
+                forceGrab = false;
+                const float jitter = 1.0f + p.scatter * 0.4f * (rand01() * 2.0f - 1.0f);
+                // A loop must get at least two passes, or at high Swarm + long Span it never loops (at 1x it
+                // would just be a delayed copy of the input, the slower layers restart before completing).
+                const double interval = std::max(3.0 * std::pow(0.04, p.swarm) * sampleRate, 2.0 * slots[static_cast<size_t>(cur)].length);
+                countdown = static_cast<int>(interval * jitter);
+                if (startup) // the very first loop is made of an empty ring: replace it as soon as there is audio
+                {
+                    countdown = static_cast<int>(0.08 * sampleRate);
+                    startup = false;
+                }
+            }
+            else
+                forceGrab = true; // other slot still fading out: retry next chunk
         }
     }
 }

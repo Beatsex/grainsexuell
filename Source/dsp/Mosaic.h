@@ -5,6 +5,7 @@
 #include <juce_audio_basics/juce_audio_basics.h>
 
 #include <array>
+#include <atomic>
 #include <cstdint>
 #include <vector>
 
@@ -36,7 +37,7 @@ public:
 
     void prepare(double sampleRate);
     void process(float* const* ch, int numCh, int n, const Params& p);
-    int grabCount() const { return grabs; }
+    int grabCount() const { return grabs.load(std::memory_order_relaxed); }
 
 private:
     static constexpr int chunk = 512;
@@ -81,8 +82,9 @@ private:
 
     juce::SmoothedValue<float> mixSm, swarmSm;
     float dryGain = 1.0f, wetGain = 0.0f, lastMix = -1.0f;
-    int countdown = 0, grabs = 0, lastVariant = 0;
-    bool primed = false, wasActive = false, forceGrab = false;
+    int countdown = 0, lastVariant = 0;
+    std::atomic<int> grabs { 0 };
+    bool primed = false, wasActive = false, forceGrab = false, startup = true;
     std::uint32_t rng = 1;
 };
 } // namespace grain::dsp
