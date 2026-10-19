@@ -1,0 +1,118 @@
+# Builds, tests and packages grainsexuell for Windows x64, macOS (universal: Intel + Apple Silicon) and Linux x64.
+# Every run uploads one zip per platform (plus the Windows installer) as workflow artifacts.
+name: build
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+env:
+  PLUGINVAL_VERSION: v1.0.4
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: windows-x64
+            os: windows-2022
+            pluginval_asset: pluginval_Windows.zip
+            pluginval_bin: ./pluginval.exe
+          - name: macos-universal
+            os: macos-14
+            pluginval_asset: pluginval_macOS.zip
+            pluginval_bin: ./pluginval.app/Contents/MacOS/pluginval
+          - name: linux-x64
+            os: ubuntu-22.04
+            pluginval_asset: pluginval_Linux.zip
+            pluginval_bin: ./pluginval
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Linux packages
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev libjack-jackd2-dev libfreetype-dev libfontconfig1-dev \
+            libx11-dev libxcomposite-dev libxcursor-dev libxext-dev libxinerama-dev libxrandr-dev libxrender-dev \
+            libgl1-mesa-dev xvfb ninja-build
+
+      - name: Configure
+        run: |
+          if [ "$RUNNER_OS" = "macOS" ]; then
+            cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" -DCMAKE_OSX_DEPLOYMENT_TARGET=10.13
+          elif [ "$RUNNER_OS" = "Linux" ]; then
+            cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+          else
+            cmake -B build
+          fi
+
+      - name: Build
+        run: cmake --build build --config Release --parallel 4
+
+      - name: Test
+        run: |
+          if [ "$RUNNER_OS" = "Linux" ]; then
+            xvfb-run -a ctest --test-dir build -C Release --output-on-failure
+          else
+            ctest --test-dir build -C Release --output-on-failure
+          fi
+
+      - name: pluginval (strictness 5)
+        run: |
+          curl -sSL -o pluginval.zip "https://github.com/Tracktion/pluginval/releases/download/${PLUGINVAL_VERSION}/${{ matrix.pluginval_asset }}"
+          unzip -q -o pluginval.zip
+          VST3="build/grainsexuell_artefacts/Release/VST3/grainsexuell.vst3"
+          if [ "$RUNNER_OS" = "Linux" ]; then
+            xvfb-run -a ${{ matrix.pluginval_bin }} --strictness-level 5 --validate-in-process "$VST3"
+          else
+            ${{ matrix.pluginval_bin }} --strictness-level 5 --validate-in-process "$VST3"
+          fi
+
+      - name: Package
+        run: |
+          VERSION=$(sed -n 's/^#define AppVersion "\(.*\)"/\1/p' installer/grainsexuell.iss)
+          OUT="grainsexuell-beta-${VERSION}-${{ matrix.name }}"
+          A=build/grainsexuell_artefacts/Release
+          mkdir -p "$OUT"
+          cp installer/README.txt "$OUT/"
+          cp -R "$A/VST3/grainsexuell.vst3" "$OUT/"
+          if [ "$RUNNER_OS" = "macOS" ]; then
+            cp -R "$A/AU/grainsexuell.component" "$OUT/"
+            cp -R "$A/Standalone/grainsexuell.app" "$OUT/"
+            cp installer/INSTALL_mac.txt "$OUT/"
+            # ad-hoc signature: required for Apple Silicon to load the code at all (not a notarization)
+            for b in "$OUT/grainsexuell.vst3" "$OUT/grainsexuell.component" "$OUT/grainsexuell.app"; do
+              codesign --force --deep --sign - "$b"
+            done
+            lipo -info "$OUT/grainsexuell.vst3/Contents/MacOS/grainsexuell"
+            ditto -c -k --keepParent "$OUT" "$OUT.zip"
+          elif [ "$RUNNER_OS" = "Linux" ]; then
+            cp -R "$A/LV2/grainsexuell.lv2" "$OUT/"
+            cp "$A/Standalone/grainsexuell" "$OUT/"
+            cp installer/INSTALL_linux.txt "$OUT/"
+            zip -q -r "$OUT.zip" "$OUT"
+          else
+            cp "$A/Standalone/grainsexuell.exe" "$OUT/"
+            7z a -bd "$OUT.zip" "$OUT" > /dev/null
+            choco install innosetup -y --no-progress > /dev/null
+            "/c/Program Files (x86)/Inno Setup 6/ISCC.exe" installer/grainsexuell.iss
+            cp build/installer/*.exe .
+          fi
+          echo "PACKAGE=$OUT" >> "$GITHUB_ENV"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.PACKAGE }}
+          path: |
+            ${{ env.PACKAGE }}.zip
+            *-setup.exe
+          if-no-files-found: error

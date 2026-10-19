@@ -1,0 +1,16 @@
+grainsexuell on macOS (one build for Intel and Apple Silicon, macOS 10.13 or newer)
+
+INSTALL
+  VST3:   copy grainsexuell.vst3       to  ~/Library/Audio/Plug-Ins/VST3/
+  AU:     copy grainsexuell.component  to  ~/Library/Audio/Plug-Ins/Components/
+  App:    copy grainsexuell.app        to  /Applications/
+  (In Finder: Go > Go to Folder... and paste the path.)
+
+FIRST START (the beta is not notarized by Apple yet)
+  macOS will say the plugin or app "cannot be opened" or "is damaged". Open Terminal and run:
+    xattr -cr ~/Library/Audio/Plug-Ins/VST3/grainsexuell.vst3
+    xattr -cr ~/Library/Audio/Plug-Ins/Components/grainsexuell.component
+    xattr -cr /Applications/grainsexuell.app
+  Then restart your DAW (Logic: it rescans Audio Units on start).
+
+The rest of the README applies unchanged.

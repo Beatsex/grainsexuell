@@ -51,6 +51,8 @@ set(GRAIN_JUCE_DEFS
 set(GRAIN_FORMATS VST3 Standalone)
 if(APPLE)
     list(APPEND GRAIN_FORMATS AU)
+elseif(UNIX)
+    list(APPEND GRAIN_FORMATS LV2) # the common Linux plugin format
 endif()
 
 juce_add_plugin(grainsexuell
@@ -62,6 +64,7 @@ juce_add_plugin(grainsexuell
     IS_SYNTH FALSE
     NEEDS_MIDI_INPUT TRUE
     NEEDS_MIDI_OUTPUT FALSE
+    LV2URI "urn:beatsexuell:grainsexuell"
     COPY_PLUGIN_AFTER_BUILD FALSE)
 
 target_sources(grainsexuell PRIVATE ${GRAIN_CORE_SOURCES} Source/PluginEntry.cpp)

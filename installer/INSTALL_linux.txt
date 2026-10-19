@@ -1,0 +1,11 @@
+grainsexuell on Linux (x86-64, built on Ubuntu 22.04)
+
+INSTALL
+  VST3:   copy grainsexuell.vst3  to  ~/.vst3/
+  LV2:    copy grainsexuell.lv2   to  ~/.lv2/
+  App:    copy grainsexuell anywhere and run it (chmod +x grainsexuell if needed)
+
+Needs ALSA (and optionally JACK) and an X11 or XWayland desktop; these are on every desktop distribution.
+Bitwig, REAPER, Ardour and Carla load VST3; Ardour and Carla also load LV2.
+
+The rest of the README applies unchanged.
