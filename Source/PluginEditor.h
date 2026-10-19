@@ -10,6 +10,7 @@ public:
     ~PluginEditor() override;
 
     void paint(juce::Graphics&) override;
+    void paintOverChildren(juce::Graphics&) override; // group dividers
     void resized() override;
     void mouseDown(const juce::MouseEvent&) override; // right-click: MIDI learn menu
 

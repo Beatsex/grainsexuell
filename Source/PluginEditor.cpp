@@ -29,6 +29,9 @@ const juce::StringArray variantNames[4] {
 
 // layout, in design pixels (1040 x 620): header, body (pink left column + right column of rows), footer
 constexpr float headerH = 44, footerH = 36, leftW = 560, cellH = 40, rowH = 36;
+constexpr float slotLabelW = 40;           // the "A" / "B" column on the pink panel
+constexpr float variantBW = 320;           // variant B cells, then the routing cells
+constexpr float loopGroups[] { 216, 360 }; // x offsets of the looper group boundaries (state | speed | position)
 constexpr float bodyTop = headerH, bodyBottom = 620 - footerH;
 } // namespace
 
@@ -56,6 +59,7 @@ PluginEditor::PluginEditor(PluginProcessor& p)
     nextPreset.setTitle("Next preset");
     presetName.setTitle("Preset menu");
     presetName.setTooltip("Presets: factory, yours, save, delete");
+    presetName.getProperties().set("menu", true);
     savePreset.setTitle("Save preset");
     prevPreset.onClick = [this] { stepPreset(-1); };
     nextPreset.onClick = [this] { stepPreset(1); };
@@ -154,6 +158,7 @@ void PluginEditor::addToggle(juce::TextButton& button, const char* id, const juc
     button.setTitle(text);
     toggleAttachments.add(new juce::ButtonParameterAttachment(param(processor, id), button));
     button.setClickingTogglesState(true);
+    button.getProperties().set("switch", true); // drawn with an on/off marker, unlike radio cells
     addTarget(button, id);
 }
 
@@ -185,16 +190,36 @@ void PluginEditor::paint(juce::Graphics& g)
     g.fillRect(r(0, bodyBottom, designWidth, 1));
     g.fillRect(r(leftW - 1, 0, 1, bodyBottom));
     for (int i = 1; i <= 4; ++i)
-        g.fillRect(r(0, bodyTop + cellH * static_cast<float>(i) - 1, leftW, 1));
+        g.fillRect(r(i == 2 ? 0 : slotLabelW, bodyTop + cellH * static_cast<float>(i) - 1, leftW - (i == 2 ? 0 : slotLabelW), 1));
+    g.fillRect(r(slotLabelW - 1, bodyTop, 1, cellH * 4));
+    g.setFont(sans(14.0f * s, true));
+    g.drawText("A", r(0, bodyTop, slotLabelW, cellH * 2), juce::Justification::centred);
+    g.drawText("B", r(0, bodyTop + cellH * 2, slotLabelW, cellH * 2), juce::Justification::centred);
     for (float y : { 440.0f, 476.0f, 512.0f, 548.0f })
         g.fillRect(r(leftW, y + rowH - 1, designWidth - leftW, 1));
     g.drawRect(getLocalBounds(), 1);
 
     // header text: name left, maker right
-    g.setFont(sans(11.0f * s, true));
+    g.setFont(sans(12.0f * s, true));
     g.drawText("GRAINSEXUELL", r(28, 0, 240, headerH), juce::Justification::centredLeft);
-    g.setFont(sans(11.0f * s));
+    g.setFont(sans(12.0f * s));
     g.drawText("GRANULAR LOOP FX  /  BEATSEXUELL", r(leftW - 28 - 300, 0, 300, headerH), juce::Justification::centredRight);
+}
+
+void PluginEditor::paintOverChildren(juce::Graphics& g)
+{
+    // group dividers: a paper gap between ink rules, so two selected (black) cells of different groups never merge
+    const float s = static_cast<float>(getWidth()) / designWidth;
+    const auto divider = [&g, s](float x, float y, float h) {
+        g.setColour(gui::palette::paper);
+        g.fillRect(juce::Rectangle<float>((x - 2) * s, y * s, 4 * s, h * s));
+        g.setColour(gui::palette::ink);
+        g.fillRect(juce::Rectangle<float>((x - 2) * s - 1, y * s, 1, h * s));
+        g.fillRect(juce::Rectangle<float>((x + 2) * s, y * s, 1, h * s));
+    };
+    divider(slotLabelW + variantBW, bodyTop + cellH * 3, cellH - 1);
+    for (float x : loopGroups)
+        divider(leftW + x, 512, rowH - 1);
 }
 
 void PluginEditor::resized()
@@ -212,11 +237,12 @@ void PluginEditor::resized()
     place(savePreset, leftW + 400, 0, 80, headerH - 1);
 
     // left column on pink: slot A, slot B, the activity readout
-    place(family, 0, bodyTop, leftW - 1, cellH - 1);
-    place(variant, 0, bodyTop + cellH, leftW - 1, cellH - 1);
-    place(familyB, 0, bodyTop + cellH * 2, leftW - 1, cellH - 1);
-    place(variantB, 0, bodyTop + cellH * 3, 336, cellH - 1);
-    place(routeB, 336, bodyTop + cellH * 3, leftW - 337, cellH - 1);
+    const float cellsW = leftW - 1 - slotLabelW;
+    place(family, slotLabelW, bodyTop, cellsW, cellH - 1);
+    place(variant, slotLabelW, bodyTop + cellH, cellsW, cellH - 1);
+    place(familyB, slotLabelW, bodyTop + cellH * 2, cellsW, cellH - 1);
+    place(variantB, slotLabelW, bodyTop + cellH * 3, variantBW, cellH - 1);
+    place(routeB, slotLabelW + variantBW, bodyTop + cellH * 3, cellsW - variantBW, cellH - 1);
     place(activity, 0, bodyTop + cellH * 4, leftW - 1, bodyBottom - bodyTop - cellH * 4);
     activity.setScale(s);
 
@@ -229,9 +255,9 @@ void PluginEditor::resized()
     place(hazeMode, leftW, 440, 480, rowH - 1);
     place(autoGain, leftW, 476, 240, rowH - 1);
     place(hold, leftW + 240, 476, 240, rowH - 1);
-    place(loop, leftW, 512, 216, rowH - 1);
-    place(loopSpeed, leftW + 216, 512, 144, rowH - 1);
-    place(loopPos, leftW + 360, 512, 120, rowH - 1);
+    place(loop, leftW, 512, loopGroups[0], rowH - 1);
+    place(loopSpeed, leftW + loopGroups[0], 512, loopGroups[1] - loopGroups[0], rowH - 1);
+    place(loopPos, leftW + loopGroups[1], 512, 480 - loopGroups[1], rowH - 1);
     place(loopReverse, leftW, 548, 120, rowH - 1);
     place(loopQuant, leftW + 120, 548, 120, rowH - 1);
     place(loopBurst, leftW + 240, 548, 120, rowH - 1);
@@ -239,7 +265,7 @@ void PluginEditor::resized()
 
     // footer
     for (auto* l : { &status, &meter })
-        l->setFont(gui::mono(11.0f * s));
+        l->setFont(gui::mono(12.0f * s));
     place(status, 28, bodyBottom + 1, 640, footerH - 1);
     place(meter, 680, bodyBottom + 1, designWidth - 680 - 28, footerH - 1);
 

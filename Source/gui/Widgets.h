@@ -13,7 +13,7 @@ namespace palette
 inline const juce::Colour paper { 0xfff3f1ee };
 inline const juce::Colour ink { 0xff111111 };
 inline const juce::Colour pink { 0xfff2b8c6 };
-inline const juce::Colour faint = ink.withAlpha(0.35f);
+inline const juce::Colour faint = ink.withAlpha(0.55f); // >= 3:1 on paper (UI element contrast)
 } // namespace palette
 
 inline juce::FontOptions sans(float size, bool bold = false)
@@ -61,8 +61,13 @@ public:
     void drawButtonBackground(juce::Graphics& g, juce::Button& b, const juce::Colour&, bool over, bool down) override
     {
         const auto area = b.getLocalBounds().toFloat();
-        if (b.getToggleState() || down) // feedback on press, not on release
-            g.fillAll(palette::ink.withAlpha(! b.isEnabled() ? 0.35f : (down && ! b.getToggleState() ? 0.85f : 1.0f)));
+        if (! b.isEnabled() && b.getToggleState()) // disabled selection: an outline, so it does not read as an error stripe
+        {
+            g.setColour(palette::ink.withAlpha(0.35f));
+            g.drawRect(area.reduced(4.0f * scale), 1.0f);
+        }
+        else if (b.getToggleState() || down) // feedback on press, not on release
+            g.fillAll(palette::ink.withAlpha(down && ! b.getToggleState() ? 0.85f : 1.0f));
         else if (over && b.isEnabled())
             g.fillAll(palette::ink.withAlpha(0.08f));
         g.setColour(palette::ink);
@@ -74,13 +79,48 @@ public:
         }
     }
 
+    // Buttons flagged with the property "switch" (on/off toggles) get a square marker, filled when on, so they read
+    // differently from radio cells; "menu" buttons get a small triangle.
     void drawButtonText(juce::Graphics& g, juce::TextButton& b, bool, bool down) override
     {
-        const bool inverted = b.getToggleState() || down;
-        g.setColour(inverted ? palette::paper : palette::ink.withMultipliedAlpha(b.isEnabled() ? 1.0f : 0.35f));
-        g.setFont(sans(11.0f * scale));
-        g.drawFittedText(b.getButtonText().toUpperCase(), b.getLocalBounds().reduced(juce::roundToInt(4 * scale), 0),
-                         juce::Justification::centred, 1, 0.8f);
+        const bool inverted = (b.getToggleState() && b.isEnabled()) || down;
+        const auto colour = inverted ? palette::paper : palette::ink.withMultipliedAlpha(b.isEnabled() ? 1.0f : 0.35f);
+        g.setColour(colour);
+        const auto font = sans(12.0f * scale);
+        g.setFont(font);
+        const auto text = b.getButtonText().toUpperCase();
+        const bool isSwitch = b.getProperties().getWithDefault("switch", false);
+        const bool isMenu = b.getProperties().getWithDefault("menu", false);
+        if (! isSwitch && ! isMenu)
+        {
+            g.drawFittedText(text, b.getLocalBounds().reduced(juce::roundToInt(4 * scale), 0), juce::Justification::centred, 1, 0.8f);
+            return;
+        }
+
+        const float mark = 8.0f * scale, gap = 8.0f * scale;
+        const float textW = juce::GlyphArrangement::getStringWidth(juce::Font(font), text);
+        const float total = textW + gap + mark;
+        const auto c = b.getLocalBounds().toFloat().getCentre();
+        const float left = c.x - total * 0.5f;
+        if (isSwitch) // marker before the label
+        {
+            const auto box = juce::Rectangle<float>(left, c.y - mark * 0.5f, mark, mark);
+            if (b.getToggleState())
+                g.fillRect(box);
+            else
+                g.drawRect(box, 1.0f);
+            g.drawText(text, juce::Rectangle<float>(left + mark + gap, 0.0f, textW + 2.0f, static_cast<float>(b.getHeight())),
+                       juce::Justification::centredLeft, false);
+        }
+        else // triangle after the label
+        {
+            g.drawText(text, juce::Rectangle<float>(left, 0.0f, textW + 2.0f, static_cast<float>(b.getHeight())),
+                       juce::Justification::centredLeft, false);
+            juce::Path tri;
+            const float tx = left + textW + gap;
+            tri.addTriangle(tx, c.y - mark * 0.3f, tx + mark, c.y - mark * 0.3f, tx + mark * 0.5f, c.y + mark * 0.35f);
+            g.fillPath(tri);
+        }
     }
 
     int getSliderThumbRadius(juce::Slider&) override { return juce::roundToInt(6.0f * scale); }
@@ -203,9 +243,9 @@ public:
         area.removeFromLeft(16.0f * scale);
         area.removeFromRight(16.0f * scale);
 
-        g.setFont(mono(11.0f * scale));
+        g.setFont(mono(12.0f * scale));
         g.drawText(index, area.removeFromLeft(30.0f * scale), juce::Justification::centredLeft);
-        g.setFont(sans(11.0f * scale, true));
+        g.setFont(sans(12.0f * scale, true));
         g.drawText((caption.isEmpty() ? name : name + "  " + caption).toUpperCase(), area.removeFromLeft(118.0f * scale),
                    juce::Justification::centredLeft);
         g.setFont(mono(13.0f * scale));
@@ -253,7 +293,7 @@ public:
         auto area = getLocalBounds().toFloat().reduced(28.0f * scale, 0.0f);
         area.removeFromTop(20.0f * scale);
         g.setColour(palette::ink);
-        g.setFont(sans(11.0f * scale));
+        g.setFont(sans(12.0f * scale));
         const auto top = area.removeFromTop(16.0f * scale);
         g.drawText("GRAIN ACTIVITY", top, juce::Justification::centredLeft);
         g.drawText("EVENTS / S", top, juce::Justification::centredRight);
