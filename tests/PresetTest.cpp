@@ -351,3 +351,32 @@ TEST_CASE("presets: applying presets from another thread while audio runs is saf
     other.join();
     REQUIRE(finite);
 }
+
+TEST_CASE("Init puts every sound control and slot B back to its default and leaves the rest alone")
+{
+    PluginProcessor p;
+    const auto set = [&p](const char* id, float normalised) { p.apvts.getParameter(id)->setValueNotifyingHost(normalised); };
+    p.presets.applyFactory(5);
+    set(grain::ids::family2, 0.5f);
+    set(grain::ids::mix2, 0.9f);
+    set(grain::ids::hold, 1.0f);    // a switch: not part of a preset
+    set(grain::ids::ingain, 0.75f); // the trims: not part of a preset
+
+    p.presets.applyInit();
+    for (auto* id : grain::presets::soundIds)
+    {
+        INFO(id);
+        auto* prm = p.apvts.getParameter(id);
+        REQUIRE(prm->getValue() == Catch::Approx(prm->getDefaultValue()));
+    }
+    for (auto* id : grain::presets::slotBIds)
+    {
+        INFO(id);
+        auto* prm = p.apvts.getParameter(id);
+        REQUIRE(prm->getValue() == Catch::Approx(prm->getDefaultValue()));
+    }
+    REQUIRE(p.apvts.getParameter(grain::ids::hold)->getValue() == 1.0f);
+    REQUIRE(p.apvts.getParameter(grain::ids::ingain)->getValue() == Catch::Approx(0.75f));
+    REQUIRE(p.presets.currentName() == "Init");
+    REQUIRE(p.presets.currentFactoryIndex() == -1);
+}

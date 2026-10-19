@@ -31,6 +31,8 @@ public:
     static constexpr int maxXmlDepth = 32;
     static bool isSafeXml(std::string_view text);
 
+    static constexpr const char* initName = "Init";
+    void applyInit(); // every sound control (slot B too) back to its default
     bool applyFactory(int index);
     bool applyUser(const juce::String& name);
     bool saveUser(const juce::String& name);

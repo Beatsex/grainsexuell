@@ -26,6 +26,10 @@ const juce::StringArray variantNames[4] {
     { "Shuffle", "Crush", "Arp", "Stutter" },  // Shard
     { "Echo", "Ping-pong", "Reverse", "Cascade" } // Tap
 };
+
+// layout, in design pixels (1040 x 620): header, body (pink left column + right column of rows), footer
+constexpr float headerH = 44, footerH = 36, leftW = 560, cellH = 40, rowH = 36;
+constexpr float bodyTop = headerH, bodyBottom = 620 - footerH;
 } // namespace
 
 PluginEditor::PluginEditor(PluginProcessor& p)
@@ -46,7 +50,7 @@ PluginEditor::PluginEditor(PluginProcessor& p)
     setLookAndFeel(&look);
     setTitle("grainsexuell");
 
-    for (auto* c : { &prevPreset, &nextPreset, &presetName, &savePreset })
+    for (auto* c : { &presetName, &prevPreset, &nextPreset, &savePreset })
         addAndMakeVisible(c);
     prevPreset.setTitle("Previous preset");
     nextPreset.setTitle("Next preset");
@@ -58,28 +62,28 @@ PluginEditor::PluginEditor(PluginProcessor& p)
     presetName.onClick = [this] { showPresetMenu(); };
     savePreset.onClick = [this] { askAndSavePreset(); };
 
-    addAndMakeVisible(family);
-    addAndMakeVisible(variant);
+    for (auto* row : { &family, &variant, &familyB, &variantB, &routeB })
+        addAndMakeVisible(row);
     addTarget(family, ids::family);
     addTarget(variant, ids::variant);
-    for (auto* row : { &familyB, &variantB, &routeB })
-        addAndMakeVisible(row);
     addTarget(familyB, ids::family2);
     addTarget(variantB, ids::variant2);
     addTarget(routeB, ids::route2);
+    addAndMakeVisible(activity);
 
-    const std::pair<const char*, const char*> knobList[] { { ids::ingain, "In" },    { ids::swarm, "Swarm" }, { ids::tail, "Tail" },
-                                                           { ids::span, "Span" },   { ids::scatter, "Scatter" },
-                                                           { ids::bend, "Bend" },   { ids::dusk, "Dusk" },
-                                                           { ids::haze, "Haze" },   { ids::mix, "Mix" },
-                                                           { ids::mix2, "Mix B" },
-                                                           { ids::outgain, "Out" } };
-    for (const auto& [id, text] : knobList)
+    // signal order: input trim, the macros, the effects, both mixes, output trim
+    const std::pair<const char*, const char*> rowList[] {
+        { ids::ingain, "In" },   { ids::swarm, "Swarm" }, { ids::tail, "Tail" }, { ids::span, "Span" },
+        { ids::scatter, "Scatter" }, { ids::bend, "Bend" }, { ids::dusk, "Dusk" }, { ids::haze, "Haze" },
+        { ids::mix, "Mix" },     { ids::mix2, "Mix B" },  { ids::outgain, "Out" }
+    };
+    int number = 1;
+    for (const auto& [id, text] : rowList)
     {
-        auto* k = knobs.add(new gui::Knob(param(p, id), text));
-        addAndMakeVisible(k);
-        addTarget(*k, id);
-        knobParams.push_back(indexOf(id));
+        auto* r = rows.add(new gui::ParamRow(param(p, id), text, number++));
+        addAndMakeVisible(r);
+        addTarget(*r, id);
+        rowParams.push_back(indexOf(id));
     }
 
     addAndMakeVisible(hazeMode);
@@ -87,9 +91,8 @@ PluginEditor::PluginEditor(PluginProcessor& p)
     addToggle(autoGain, ids::autogain, "Auto Gain");
     addToggle(hold, ids::hold, "Hold");
 
-    addAndMakeVisible(loop);
-    addAndMakeVisible(loopSpeed);
-    addAndMakeVisible(loopPos);
+    for (auto* row : { &loop, &loopSpeed, &loopPos })
+        addAndMakeVisible(row);
     addTarget(loop, ids::loop);
     addTarget(loopSpeed, ids::loopspeed);
     addTarget(loopPos, ids::looppos);
@@ -111,25 +114,26 @@ PluginEditor::PluginEditor(PluginProcessor& p)
 
     for (auto* l : { &status, &meter })
     {
-        l->setColour(juce::Label::textColourId, gui::palette::textDim);
+        l->setColour(juce::Label::textColourId, gui::palette::ink);
         l->setInterceptsMouseClicks(false, false);
         addAndMakeVisible(l);
     }
     meter.setJustificationType(juce::Justification::centredRight);
-    status.setText("Right-click any control to assign a MIDI CC", juce::dontSendNotification);
+    status.setText("RIGHT-CLICK ANY CONTROL TO ASSIGN A MIDI CC", juce::dontSendNotification);
 
     addMouseListener(this, true);
 
     // fixed aspect ratio, size remembered in the plugin state (read first: setResizeLimits resizes the editor)
     const int savedWidth = processor.editorWidth.load();
     setResizable(true, true);
-    setResizeLimits(designWidth * 2 / 3, designHeight * 2 / 3, designWidth * 3, designHeight * 3);
+    setResizeLimits(designWidth * 4 / 5, designHeight * 4 / 5, designWidth * 2, designHeight * 2); // smaller: labels under 9 px
     getConstrainer()->setFixedAspectRatio(static_cast<double>(designWidth) / designHeight);
-    const int w = juce::jlimit(designWidth * 2 / 3, designWidth * 3, savedWidth);
+    const int w = juce::jlimit(designWidth * 4 / 5, designWidth * 2, savedWidth);
     setSize(w, w * designHeight / designWidth);
 
     updateVariantLabels();
-    startTimerHz(15);
+    timerCallback(); // preset name, captions and status before the first tick
+    startTimerHz(gui::ActivityTrace::ticksPerSecond);
 }
 
 PluginEditor::~PluginEditor()
@@ -167,78 +171,108 @@ void PluginEditor::updateVariantLabels()
 
 void PluginEditor::paint(juce::Graphics& g)
 {
-    g.fillAll(gui::palette::background);
+    using namespace gui;
     const float s = static_cast<float>(getWidth()) / designWidth;
-    g.setColour(gui::palette::panel);
-    g.fillRoundedRectangle(12.0f * s, 174.0f * s, (designWidth - 24.0f) * s, 198.0f * s, 8.0f * s);
-    g.fillRoundedRectangle(12.0f * s, 378.0f * s, (designWidth - 24.0f) * s, 92.0f * s, 8.0f * s);
-    g.setColour(gui::palette::textDim);
-    g.setFont(juce::FontOptions(11.0f * s));
-    g.drawText("LOOPER", juce::Rectangle<float>(24.0f * s, 382.0f * s, 80.0f * s, 14.0f * s), juce::Justification::left);
+    const auto r = [s](float x, float y, float w, float h) { return juce::Rectangle<float>(x * s, y * s, w * s, h * s); };
+
+    g.fillAll(palette::paper);
+    g.setColour(palette::pink);
+    g.fillRect(r(0, bodyTop, leftW, bodyBottom - bodyTop));
+
+    // hairlines: header and footer rules, the column divider, the rules under the selector rows
+    g.setColour(palette::ink);
+    g.fillRect(r(0, headerH - 1, designWidth, 1));
+    g.fillRect(r(0, bodyBottom, designWidth, 1));
+    g.fillRect(r(leftW - 1, 0, 1, bodyBottom));
+    for (int i = 1; i <= 4; ++i)
+        g.fillRect(r(0, bodyTop + cellH * static_cast<float>(i) - 1, leftW, 1));
+    for (float y : { 440.0f, 476.0f, 512.0f, 548.0f })
+        g.fillRect(r(leftW, y + rowH - 1, designWidth - leftW, 1));
+    g.drawRect(getLocalBounds(), 1);
+
+    // header text: name left, maker right
+    g.setFont(sans(11.0f * s, true));
+    g.drawText("GRAINSEXUELL", r(28, 0, 240, headerH), juce::Justification::centredLeft);
+    g.setFont(sans(11.0f * s));
+    g.drawText("GRANULAR LOOP FX  /  BEATSEXUELL", r(leftW - 28 - 300, 0, 300, headerH), juce::Justification::centredRight);
 }
 
 void PluginEditor::resized()
 {
     const float s = static_cast<float>(getWidth()) / designWidth;
+    look.scale = s;
     auto place = [s](juce::Component& c, float x, float y, float w, float h) {
         c.setBounds(juce::Rectangle<float>(x * s, y * s, w * s, h * s).toNearestInt());
     };
 
-    place(prevPreset, 12, 10, 32, 30);
-    place(presetName, 48, 10, 300, 30);
-    place(nextPreset, 352, 10, 32, 30);
-    place(savePreset, 392, 10, 64, 30);
-    place(meter, 560, 10, 188, 30);
+    // header: preset name, previous, next, save
+    place(presetName, leftW, 0, 312, headerH - 1);
+    place(prevPreset, leftW + 312, 0, 44, headerH - 1);
+    place(nextPreset, leftW + 356, 0, 44, headerH - 1);
+    place(savePreset, leftW + 400, 0, 80, headerH - 1);
 
-    place(family, 12, 52, 420, 34);
-    place(variant, 12, 94, 420, 34);
-    place(hazeMode, 452, 52, 296, 34);
-    place(autoGain, 452, 94, 144, 34);
-    place(hold, 604, 94, 144, 34);
-    place(familyB, 12, 136, 300, 34);
-    place(variantB, 320, 136, 280, 34);
-    place(routeB, 608, 136, 140, 34);
+    // left column on pink: slot A, slot B, the activity readout
+    place(family, 0, bodyTop, leftW - 1, cellH - 1);
+    place(variant, 0, bodyTop + cellH, leftW - 1, cellH - 1);
+    place(familyB, 0, bodyTop + cellH * 2, leftW - 1, cellH - 1);
+    place(variantB, 0, bodyTop + cellH * 3, 336, cellH - 1);
+    place(routeB, 336, bodyTop + cellH * 3, leftW - 337, cellH - 1);
+    place(activity, 0, bodyTop + cellH * 4, leftW - 1, bodyBottom - bodyTop - cellH * 4);
+    activity.setScale(s);
 
-    const float knobWidth = (designWidth - 24.0f) / static_cast<float>(knobs.size());
-    for (int i = 0; i < knobs.size(); ++i)
-        place(*knobs[i], 12.0f + knobWidth * static_cast<float>(i), 178, knobWidth, 190);
+    // right column: 11 parameter rows, then the switch rows
+    for (int i = 0; i < rows.size(); ++i)
+    {
+        place(*rows[i], leftW, bodyTop + rowH * static_cast<float>(i), designWidth - leftW, rowH);
+        rows[i]->setScale(s);
+    }
+    place(hazeMode, leftW, 440, 480, rowH - 1);
+    place(autoGain, leftW, 476, 240, rowH - 1);
+    place(hold, leftW + 240, 476, 240, rowH - 1);
+    place(loop, leftW, 512, 216, rowH - 1);
+    place(loopSpeed, leftW + 216, 512, 144, rowH - 1);
+    place(loopPos, leftW + 360, 512, 120, rowH - 1);
+    place(loopReverse, leftW, 548, 120, rowH - 1);
+    place(loopQuant, leftW + 120, 548, 120, rowH - 1);
+    place(loopBurst, leftW + 240, 548, 120, rowH - 1);
+    place(loopUndo, leftW + 360, 548, 120, rowH - 1);
 
-    place(loop, 24, 400, 220, 34);
-    place(loopSpeed, 256, 400, 150, 34);
-    place(loopPos, 418, 400, 140, 34);
-    place(loopReverse, 24, 436, 110, 30);
-    place(loopQuant, 142, 436, 110, 30);
-    place(loopBurst, 260, 436, 110, 30);
-    place(loopUndo, 378, 436, 110, 30);
-    place(status, 12, 478, 736, 24);
+    // footer
+    for (auto* l : { &status, &meter })
+        l->setFont(gui::mono(11.0f * s));
+    place(status, 28, bodyBottom + 1, 640, footerH - 1);
+    place(meter, 680, bodyBottom + 1, designWidth - 680 - 28, footerH - 1);
 
-    if (getWidth() >= designWidth * 2 / 3) // not while the window is being torn down
+    if (getWidth() >= designWidth * 4 / 5) // not while the window is being torn down
         processor.editorWidth = getWidth();
 }
 
 void PluginEditor::timerCallback()
 {
+    activity.push(processor.activityTotal());
+
     auto& map = processor.midiMap;
     const int learning = map.learning();
 
-    // captions: "CC n" on mapped knobs, "learning" while waiting
-    for (int i = 0; i < knobs.size(); ++i)
+    // captions: "CC n" on mapped rows, "learning" while waiting
+    for (int i = 0; i < rows.size(); ++i)
     {
-        const int cc = map.ccFor(knobParams[static_cast<size_t>(i)]);
-        knobs[i]->setCaption(learning == knobParams[static_cast<size_t>(i)] ? "(move a CC)" : (cc >= 0 ? "CC " + juce::String(cc) : juce::String()));
+        const int id = rowParams[static_cast<size_t>(i)];
+        const int cc = map.ccFor(id);
+        rows[i]->setCaption(learning == id ? "(move a CC)" : (cc >= 0 ? "CC " + juce::String(cc) : juce::String()));
     }
     if (learning >= 0)
-        status.setText(juce::String("Learning ") + ids::mappable[static_cast<size_t>(learning)]
-                           + ": move a knob or fader on your controller",
+        status.setText(juce::String("LEARNING ") + juce::String(ids::mappable[static_cast<size_t>(learning)]).toUpperCase()
+                           + ": MOVE A CONTROL ON YOUR CONTROLLER",
                        juce::dontSendNotification);
-    else if (status.getText().startsWith("Learning"))
-        status.setText("Assigned. Right-click any control to assign a MIDI CC", juce::dontSendNotification);
+    else if (status.getText().startsWith("LEARNING"))
+        status.setText("ASSIGNED. RIGHT-CLICK ANY CONTROL TO ASSIGN A MIDI CC", juce::dontSendNotification);
 
     const auto name = processor.presets.currentName();
     presetName.setButtonText(name.isEmpty() ? "Init" : name);
 
     const bool ag = param(processor, ids::autogain).getValue() > 0.5f;
-    meter.setText(ag ? juce::String::formatted("Auto Gain %+.1f dB", processor.autoGainDb()) : juce::String(),
+    meter.setText(ag ? juce::String::formatted("AUTO GAIN %+.1f DB", processor.autoGainDb()) : juce::String(),
                   juce::dontSendNotification);
 }
 
@@ -276,17 +310,19 @@ void PluginEditor::showLearnMenu(int paramIndex)
 
 void PluginEditor::stepPreset(int direction)
 {
-    // one list: the factory presets, then the user presets
-    juce::StringArray names;
+    // one list: Init, the factory presets, then the user presets
+    juce::StringArray names { presets::PresetManager::initName };
     for (int i = 0; i < presets::numFactory; ++i)
         names.add(presets::factory()[static_cast<size_t>(i)].name);
-    const int numFactory = names.size();
+    const int numBuiltIn = names.size();
     names.addArray(processor.presets.userPresetNames());
 
     int at = names.indexOf(processor.presets.currentName());
     at = at < 0 ? (direction > 0 ? 0 : names.size() - 1) : (at + direction + names.size()) % names.size();
-    if (at < numFactory)
-        processor.presets.applyFactory(at);
+    if (at == 0)
+        processor.presets.applyInit();
+    else if (at < numBuiltIn)
+        processor.presets.applyFactory(at - 1);
     else
         processor.presets.applyUser(names[at]);
 }
@@ -294,6 +330,7 @@ void PluginEditor::stepPreset(int direction)
 void PluginEditor::showPresetMenu()
 {
     juce::PopupMenu menu, factoryMenu, userMenu, deleteMenu;
+    menu.addItem(2, "Init (all sound controls to default)");
     const char* families[] { "Mosaic", "Cloud", "Shard", "Tap" };
     for (int f = 0; f < 4; ++f)
     {
@@ -325,6 +362,8 @@ void PluginEditor::showPresetMenu()
                                processor.presets.deleteUser(users[result - 2000]);
                            else if (result == 1)
                                askAndSavePreset();
+                           else if (result == 2)
+                               processor.presets.applyInit();
                        });
 }
 
@@ -341,7 +380,7 @@ void PluginEditor::askAndSavePreset()
                                 {
                                     const auto name = window->getTextEditorContents("name");
                                     if (! safe->processor.presets.saveUser(name))
-                                        safe->status.setText("Could not save: that name is not allowed",
+                                        safe->status.setText("COULD NOT SAVE: THAT NAME IS NOT ALLOWED",
                                                              juce::dontSendNotification);
                                 }
                             }),

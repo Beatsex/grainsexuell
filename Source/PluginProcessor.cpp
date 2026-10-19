@@ -206,7 +206,7 @@ void PluginProcessor::setStateInformation(const void* data, int sizeInBytes)
             loadMidiMap(tree.getChildWithName("MidiMap"));
             if (auto map = tree.getChildWithName("MidiMap"); map.isValid())
                 tree.removeChild(map, nullptr); // not a parameter node
-            editorWidth = std::clamp(static_cast<int>(tree.getProperty("editorWidth", 760)), 480, 2400);
+            editorWidth = std::clamp(static_cast<int>(tree.getProperty("editorWidth", 1040)), 480, 2400);
             apvts.replaceState(tree);
             presets.setCurrentName(tree.getProperty("preset").toString()); // states from before presets have none: ""
         }

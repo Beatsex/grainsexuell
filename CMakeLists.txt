@@ -56,7 +56,7 @@ endif()
 juce_add_plugin(grainsexuell
     FORMATS ${GRAIN_FORMATS}
     PRODUCT_NAME "grainsexuell"
-    COMPANY_NAME "grainsexuell"
+    COMPANY_NAME "beatsexuell"
     PLUGIN_MANUFACTURER_CODE Gsxl
     PLUGIN_CODE Gr01
     IS_SYNTH FALSE

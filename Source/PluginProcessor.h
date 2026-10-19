@@ -51,7 +51,7 @@ public:
     grain::presets::PresetManager presets; // message thread only (file I/O, host notifications)
 
     grain::midi::MidiMap midiMap; // CC learn / assign from the GUI thread; read on the audio thread
-    std::atomic<int> editorWidth { 760 }; // remembered in the state; the editor keeps a fixed aspect ratio
+    std::atomic<int> editorWidth { 1040 }; // remembered in the state; the editor keeps a fixed aspect ratio
 
     // message thread (a timer calls it): applies CC values the audio thread queued and finishes a MIDI learn
     void applyPendingMidi();
@@ -60,6 +60,15 @@ public:
     int mosaicGrabCount() const { return engines.a.mosaic.grabCount(); }
     int cloudGrainCount() const { return engines.a.cloud.grainsSpawned(); }
     int shardSliceCount() const { return engines.a.shard.slicesPlayed(); }
+    // GUI activity: every grab, grain, slice and tap repeat of both slots so far (inactive engines do not count)
+    unsigned activityTotal() const
+    {
+        unsigned total = 0;
+        for (const auto* set : { &engines.a, &engines.b })
+            total += static_cast<unsigned>(set->mosaic.grabCount()) + static_cast<unsigned>(set->cloud.grainsSpawned())
+                     + static_cast<unsigned>(set->shard.slicesPlayed()) + static_cast<unsigned>(set->tap.echoCount());
+        return total;
+    }
 
 private:
     void loadMidiMap(const juce::ValueTree& map);

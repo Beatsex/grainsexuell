@@ -1,111 +1,112 @@
 #pragma once
 
+#include "ActivityTrace.h"
+
 #include <juce_audio_utils/juce_audio_utils.h>
 
 namespace grain::gui
 {
-// Own palette and shapes; drawn with paths and gradients only (no images, nothing borrowed from other products).
+// Look: a cream sheet with ink hairlines, a dusty pink panel, small uppercase labels, monospaced numbers, square
+// thumbs, no rounded corners. Drawn with paths only (no images); system fonts.
 namespace palette
 {
-inline const juce::Colour background { 0xff14161a };
-inline const juce::Colour panel { 0xff1d2127 };
-inline const juce::Colour track { 0xff303741 };
-inline const juce::Colour accent { 0xffe8a64a };
-inline const juce::Colour accentDim { 0xff7d5a2c };
-inline const juce::Colour text { 0xffdde1e7 };
-inline const juce::Colour textDim { 0xff7e8896 };
-inline const juce::Colour learn { 0xff5cc8d6 };
+inline const juce::Colour paper { 0xfff3f1ee };
+inline const juce::Colour ink { 0xff111111 };
+inline const juce::Colour pink { 0xfff2b8c6 };
+inline const juce::Colour faint = ink.withAlpha(0.35f);
 } // namespace palette
+
+inline juce::FontOptions sans(float size, bool bold = false)
+{
+    return juce::FontOptions(size, bold ? juce::Font::bold : juce::Font::plain).withKerningFactor(0.08f);
+}
+
+inline juce::FontOptions mono(float size)
+{
+    return juce::FontOptions(juce::Font::getDefaultMonospacedFontName(), size, juce::Font::plain);
+}
 
 class GrainLookAndFeel : public juce::LookAndFeel_V4
 {
 public:
+    float scale = 1.0f; // the editor's width / design width
+
     GrainLookAndFeel()
     {
         using namespace palette;
-        setColour(juce::ResizableWindow::backgroundColourId, background);
-        setColour(juce::Label::textColourId, text);
-        setColour(juce::TextButton::buttonColourId, panel);
-        setColour(juce::TextButton::buttonOnColourId, accent);
-        setColour(juce::TextButton::textColourOffId, text);
-        setColour(juce::TextButton::textColourOnId, background);
-        setColour(juce::ComboBox::backgroundColourId, panel);
-        setColour(juce::ComboBox::textColourId, text);
-        setColour(juce::ComboBox::outlineColourId, track);
-        setColour(juce::ComboBox::arrowColourId, accent);
-        setColour(juce::PopupMenu::backgroundColourId, panel);
-        setColour(juce::PopupMenu::textColourId, text);
-        setColour(juce::PopupMenu::highlightedBackgroundColourId, accentDim);
-        setColour(juce::TooltipWindow::backgroundColourId, panel);
-        setColour(juce::TooltipWindow::textColourId, text);
+        setColour(juce::ResizableWindow::backgroundColourId, paper);
+        setColour(juce::Label::textColourId, ink);
+        setColour(juce::PopupMenu::backgroundColourId, paper);
+        setColour(juce::PopupMenu::textColourId, ink);
+        setColour(juce::PopupMenu::headerTextColourId, ink);
+        setColour(juce::PopupMenu::highlightedBackgroundColourId, ink);
+        setColour(juce::PopupMenu::highlightedTextColourId, paper);
+        setColour(juce::TooltipWindow::backgroundColourId, ink);
+        setColour(juce::TooltipWindow::textColourId, paper);
+        setColour(juce::TooltipWindow::outlineColourId, ink);
+        setColour(juce::AlertWindow::backgroundColourId, paper);
+        setColour(juce::AlertWindow::textColourId, ink);
+        setColour(juce::AlertWindow::outlineColourId, ink);
+        setColour(juce::TextEditor::backgroundColourId, juce::Colours::white);
+        setColour(juce::TextEditor::textColourId, ink);
+        setColour(juce::TextEditor::outlineColourId, ink);
+        setColour(juce::TextEditor::focusedOutlineColourId, ink);
+        setColour(juce::TextButton::buttonColourId, paper);
+        setColour(juce::TextButton::textColourOffId, ink);
+        setColour(juce::TextButton::textColourOnId, paper);
+        setColour(juce::Slider::textBoxTextColourId, ink);
     }
 
-    void drawRotarySlider(juce::Graphics& g, int x, int y, int w, int h, float pos, float startAngle, float endAngle,
-                          juce::Slider& slider) override
+    // a grid cell: transparent, ink when selected or pressed, a hairline on its right edge
+    void drawButtonBackground(juce::Graphics& g, juce::Button& b, const juce::Colour&, bool over, bool down) override
     {
-        const auto bounds = juce::Rectangle<float>(static_cast<float>(x), static_cast<float>(y), static_cast<float>(w),
-                                                   static_cast<float>(h)).reduced(6.0f);
-        const float radius = std::min(bounds.getWidth(), bounds.getHeight()) * 0.5f;
-        const auto centre = bounds.getCentre();
-        const float thickness = std::max(3.0f, radius * 0.16f);
-        const float arcRadius = radius - thickness * 0.5f;
-        const float angle = startAngle + pos * (endAngle - startAngle);
-
-        juce::Path trackPath;
-        trackPath.addCentredArc(centre.x, centre.y, arcRadius, arcRadius, 0.0f, startAngle, endAngle, true);
-        g.setColour(palette::track);
-        g.strokePath(trackPath, juce::PathStrokeType(thickness, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
-
-        juce::Path valuePath;
-        valuePath.addCentredArc(centre.x, centre.y, arcRadius, arcRadius, 0.0f, startAngle, angle, true);
-        g.setColour(slider.isEnabled() ? palette::accent : palette::accentDim);
-        g.strokePath(valuePath, juce::PathStrokeType(thickness, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
-
-        // body with a soft top light, then the pointer
-        const float bodyRadius = radius - thickness - 4.0f;
-        g.setGradientFill(juce::ColourGradient(palette::panel.brighter(0.25f), centre.x, centre.y - bodyRadius,
-                                               palette::panel.darker(0.4f), centre.x, centre.y + bodyRadius, false));
-        g.fillEllipse(centre.x - bodyRadius, centre.y - bodyRadius, bodyRadius * 2.0f, bodyRadius * 2.0f);
-
-        juce::Path pointer;
-        pointer.addRoundedRectangle(-1.5f, -bodyRadius, 3.0f, bodyRadius * 0.55f, 1.5f);
-        g.setColour(palette::text);
-        g.fillPath(pointer, juce::AffineTransform::rotation(angle).translated(centre.x, centre.y));
-
-        if (slider.hasKeyboardFocus(false))
-        {
-            g.setColour(palette::accent.withAlpha(0.6f));
-            g.drawEllipse(centre.x - radius, centre.y - radius, radius * 2.0f, radius * 2.0f, 1.0f);
-        }
-    }
-
-    void drawButtonBackground(juce::Graphics& g, juce::Button& b, const juce::Colour&, bool highlighted, bool down) override
-    {
-        const auto area = b.getLocalBounds().toFloat().reduced(1.0f);
-        const bool on = b.getToggleState();
-        auto fill = on ? palette::accent : palette::panel;
-        if (! on && highlighted)
-            fill = fill.brighter(0.15f);
-        if (down) // feedback on press, not on release
-            fill = on ? fill.darker(0.15f) : fill.brighter(0.3f);
-        g.setColour(fill);
-        g.fillRoundedRectangle(area, 6.0f);
-        g.setColour(on ? palette::accent : palette::track);
-        g.drawRoundedRectangle(area, 6.0f, 1.0f);
+        const auto area = b.getLocalBounds().toFloat();
+        if (b.getToggleState() || down) // feedback on press, not on release
+            g.fillAll(palette::ink.withAlpha(! b.isEnabled() ? 0.35f : (down && ! b.getToggleState() ? 0.85f : 1.0f)));
+        else if (over && b.isEnabled())
+            g.fillAll(palette::ink.withAlpha(0.08f));
+        g.setColour(palette::ink);
+        g.fillRect(area.getRight() - 1.0f, 0.0f, 1.0f, area.getHeight());
         if (b.hasKeyboardFocus(false))
         {
-            g.setColour(palette::learn);
-            g.drawRoundedRectangle(area.reduced(2.0f), 4.0f, 1.0f);
+            g.setColour(b.getToggleState() ? palette::pink : palette::ink);
+            g.drawRect(area.reduced(3.0f), 1.0f);
         }
     }
 
-    juce::Font getTextButtonFont(juce::TextButton&, int height) override
+    void drawButtonText(juce::Graphics& g, juce::TextButton& b, bool, bool down) override
     {
-        return juce::FontOptions(static_cast<float>(height) * 0.42f);
+        const bool inverted = b.getToggleState() || down;
+        g.setColour(inverted ? palette::paper : palette::ink.withMultipliedAlpha(b.isEnabled() ? 1.0f : 0.35f));
+        g.setFont(sans(11.0f * scale));
+        g.drawFittedText(b.getButtonText().toUpperCase(), b.getLocalBounds().reduced(juce::roundToInt(4 * scale), 0),
+                         juce::Justification::centred, 1, 0.8f);
+    }
+
+    int getSliderThumbRadius(juce::Slider&) override { return juce::roundToInt(6.0f * scale); }
+
+    // a hairline track, a 3 px fill up to the value and a square thumb
+    void drawLinearSlider(juce::Graphics& g, int x, int y, int w, int h, float pos, float, float,
+                          juce::Slider::SliderStyle, juce::Slider& s) override
+    {
+        const float cy = static_cast<float>(y) + static_cast<float>(h) * 0.5f;
+        const float left = static_cast<float>(x), right = static_cast<float>(x + w);
+        const float thumb = 12.0f * scale;
+        g.setColour(palette::faint);
+        g.fillRect(left, cy - 0.5f, right - left, 1.0f);
+        g.setColour(palette::ink.withMultipliedAlpha(s.isEnabled() ? 1.0f : 0.35f));
+        g.fillRect(left, cy - 1.5f * scale, std::max(0.0f, pos - left), 3.0f * scale);
+        const auto square = juce::Rectangle<float>(thumb, thumb).withCentre({ pos, cy });
+        g.fillRect(square);
+        if (s.hasKeyboardFocus(false))
+        {
+            g.setColour(palette::ink);
+            g.drawRect(square.expanded(3.0f * scale), 1.0f);
+        }
     }
 };
 
-// One parameter shown as a row of radio buttons (family, variant, loop state, ...).
+// One parameter shown as a row of radio cells (family, variant, loop state, ...).
 class ChoiceRow : public juce::Component
 {
 public:
@@ -125,8 +126,6 @@ public:
             auto* b = buttons.add(new juce::TextButton(labels[i]));
             b->setClickingTogglesState(false);
             b->setTitle(getTitle() + " " + labels[i]);
-            b->setConnectedEdges((i > 0 ? juce::Button::ConnectedOnLeft : 0)
-                                 | (i < labels.size() - 1 ? juce::Button::ConnectedOnRight : 0));
             b->onClick = [this, i] { attachment.setValueAsCompleteGesture(static_cast<float>(i)); };
             addAndMakeVisible(b);
         }
@@ -155,66 +154,126 @@ private:
     juce::ParameterAttachment attachment;
 };
 
-// Rotary knob with a name label and a value read-out; double-click resets to the default.
-class Knob : public juce::Component
+// One continuous parameter as a numbered row: 01  NAME  ----#------  value. Double-click resets the slider.
+class ParamRow : public juce::Component
 {
 public:
-    Knob(juce::RangedAudioParameter& param, const juce::String& labelText)
-        : name(labelText), attachment(param, slider)
+    ParamRow(juce::RangedAudioParameter& param, const juce::String& labelText, int number)
+        : name(labelText), index(juce::String(number).paddedLeft('0', 2)), attachment(param, slider)
     {
-        slider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
-        slider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 62, 18);
-        slider.setColour(juce::Slider::textBoxTextColourId, palette::textDim);
-        slider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
-        slider.setRotaryParameters(juce::degreesToRadians(225.0f), juce::degreesToRadians(495.0f), true);
+        slider.setSliderStyle(juce::Slider::LinearHorizontal);
+        slider.setTextBoxStyle(juce::Slider::NoTextBox, true, 0, 0);
         slider.setDoubleClickReturnValue(true, param.convertFrom0to1(param.getDefaultValue()));
         slider.setTitle(labelText);
         slider.setTooltip(labelText + ": drag, double-click to reset, right-click for MIDI learn");
-        // read-outs: Hz / kHz for the filter, percent for the 0..1 macros (the attachment's own text has 7 decimals)
+
+        // read-outs: dB for the trims, Hz / kHz for the filter, percent for the 0..1 macros
         if (param.getLabel() == "dB")
-        {
             slider.textFromValueFunction = [](double v) { return (v > 0.0 ? "+" : "") + juce::String(v, 1) + " dB"; };
-            slider.valueFromTextFunction = [](const juce::String& t) { return t.getDoubleValue(); };
-        }
         else if (param.getLabel() == "Hz")
-        {
             slider.textFromValueFunction = [](double v) {
                 return v >= 1000.0 ? juce::String(v / 1000.0, 1) + " kHz" : juce::String(juce::roundToInt(v)) + " Hz";
             };
-            slider.valueFromTextFunction = [](const juce::String& t) {
-                return t.getDoubleValue() * (t.containsIgnoreCase("k") ? 1000.0 : 1.0);
-            };
-        }
         else
-        {
-            slider.textFromValueFunction = [](double v) { return juce::String(juce::roundToInt(v * 100.0)) + "%"; };
-            slider.valueFromTextFunction = [](const juce::String& t) { return t.getDoubleValue() / 100.0; };
-        }
-        slider.updateText();
-        label.setText(labelText, juce::dontSendNotification);
-        label.setJustificationType(juce::Justification::centred);
-        label.setInterceptsMouseClicks(false, false);
+            slider.textFromValueFunction = [](double v) { return juce::String(juce::roundToInt(v * 100.0)) + " %"; };
+        slider.onValueChange = [this] { repaint(); };
         addAndMakeVisible(slider);
-        addAndMakeVisible(label);
     }
 
     void setCaption(const juce::String& extra)
     {
-        label.setText(extra.isEmpty() ? name : name + "  " + extra, juce::dontSendNotification);
+        if (extra != caption)
+        {
+            caption = extra;
+            repaint();
+        }
+    }
+
+    void setScale(float s)
+    {
+        scale = s;
+        resized();
+    }
+
+    void paint(juce::Graphics& g) override
+    {
+        auto area = getLocalBounds().toFloat();
+        g.setColour(palette::ink);
+        g.fillRect(area.removeFromBottom(1.0f));
+        area.removeFromLeft(16.0f * scale);
+        area.removeFromRight(16.0f * scale);
+
+        g.setFont(mono(11.0f * scale));
+        g.drawText(index, area.removeFromLeft(30.0f * scale), juce::Justification::centredLeft);
+        g.setFont(sans(11.0f * scale, true));
+        g.drawText((caption.isEmpty() ? name : name + "  " + caption).toUpperCase(), area.removeFromLeft(118.0f * scale),
+                   juce::Justification::centredLeft);
+        g.setFont(mono(13.0f * scale));
+        g.drawText(slider.getTextFromValue(slider.getValue()), area.removeFromRight(84.0f * scale),
+                   juce::Justification::centredRight);
     }
 
     void resized() override
     {
         auto area = getLocalBounds();
-        label.setBounds(area.removeFromTop(20));
+        area.removeFromLeft(juce::roundToInt((16.0f + 30.0f + 118.0f) * scale));
+        area.removeFromRight(juce::roundToInt((16.0f + 84.0f + 10.0f) * scale));
         slider.setBounds(area);
     }
 
     juce::Slider slider;
 
 private:
-    juce::String name;
-    juce::Label label;
+    juce::String name, index, caption;
+    float scale = 1.0f;
     juce::SliderParameterAttachment attachment;
+};
+
+// The pink readout: engine events per second as a huge number, and the last ~4 s as a row of bars.
+class ActivityPanel : public juce::Component
+{
+public:
+    ActivityPanel()
+    {
+        setInterceptsMouseClicks(false, false);
+        setTitle("Grain activity");
+    }
+
+    void push(unsigned total)
+    {
+        trace.push(total);
+        setDescription(juce::String(trace.perSecond()) + " events per second");
+        repaint();
+    }
+
+    void setScale(float s) { scale = s; }
+
+    void paint(juce::Graphics& g) override
+    {
+        auto area = getLocalBounds().toFloat().reduced(28.0f * scale, 0.0f);
+        area.removeFromTop(20.0f * scale);
+        g.setColour(palette::ink);
+        g.setFont(sans(11.0f * scale));
+        const auto top = area.removeFromTop(16.0f * scale);
+        g.drawText("GRAIN ACTIVITY", top, juce::Justification::centredLeft);
+        g.drawText("EVENTS / S", top, juce::Justification::centredRight);
+
+        auto barsArea = area.removeFromBottom(110.0f * scale);
+        auto numberArea = area.reduced(0.0f, 6.0f * scale);
+        g.setFont(juce::FontOptions(numberArea.getHeight() * 0.95f).withKerningFactor(-0.05f));
+        g.drawText(juce::String(trace.perSecond()), numberArea.translated(-8.0f * scale, 0.0f),
+                   juce::Justification::bottomLeft, false);
+
+        const float step = barsArea.getWidth() / static_cast<float>(ActivityTrace::numBars);
+        for (int i = 0; i < ActivityTrace::numBars; ++i)
+        {
+            const float h = std::max(3.0f * scale, trace.bar(i) * barsArea.getHeight());
+            g.fillRect(barsArea.getX() + step * static_cast<float>(i), barsArea.getBottom() - h, 2.0f * scale, h);
+        }
+    }
+
+private:
+    ActivityTrace trace;
+    float scale = 1.0f;
 };
 } // namespace grain::gui

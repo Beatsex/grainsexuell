@@ -34,6 +34,8 @@ void Tap::prepare(double sr)
 {
     sampleRate = sr;
     cap.prepare(sr, ringSeconds);
+    echoPhase = 0.0;
+    echoes.store(0, std::memory_order_relaxed);
     for (auto& g : grains)
         g = Grain {};
     for (int i = 0; i <= hannSize; ++i)
@@ -138,6 +140,18 @@ void Tap::process(float* const* ch, int numCh, int n, const Params& requested)
             }
         }
         wasActive = true;
+
+        // ponytail: activity = one repeat per audible tap per tap step; exact per-tap onsets if the GUI ever needs them
+        echoPhase += m;
+        const double stepFrames = stepSec * sampleRate;
+        while (echoPhase >= stepFrames)
+        {
+            echoPhase -= stepFrames;
+            int audible = 0;
+            for (size_t k = 0; k < numTaps; ++k)
+                audible += gainSm[k].getTargetValue() > 0.0f ? 1 : 0;
+            echoes.fetch_add(audible, std::memory_order_relaxed);
+        }
 
         for (int f = 0; f < m; ++f)
         {

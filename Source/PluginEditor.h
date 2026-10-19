@@ -13,7 +13,9 @@ public:
     void resized() override;
     void mouseDown(const juce::MouseEvent&) override; // right-click: MIDI learn menu
 
-    static constexpr int designWidth = 760, designHeight = 512;
+    static constexpr int designWidth = 1040, designHeight = 620;
+
+    void refresh() { timerCallback(); } // tests and snapshots: what the 15 Hz timer does
 
 private:
     struct Target
@@ -35,9 +37,10 @@ private:
     grain::gui::GrainLookAndFeel look;
     juce::TooltipWindow tooltips { this, 600 };
 
-    juce::TextButton prevPreset { "<" }, nextPreset { ">" }, presetName, savePreset { "Save" };
+    juce::TextButton presetName, prevPreset { "<" }, nextPreset { ">" }, savePreset { "Save" };
     grain::gui::ChoiceRow family, variant, familyB, variantB, routeB;
-    juce::OwnedArray<grain::gui::Knob> knobs;
+    grain::gui::ActivityPanel activity;
+    juce::OwnedArray<grain::gui::ParamRow> rows;
     grain::gui::ChoiceRow hazeMode, loop, loopSpeed, loopPos;
     juce::TextButton autoGain, hold, loopReverse, loopQuant, loopBurst, loopUndo;
     juce::ParameterAttachment familyWatcher, familyBWatcher;
@@ -45,5 +48,5 @@ private:
     juce::Label status, meter;
 
     std::vector<Target> targets;
-    std::vector<int> knobParams; // index in ids::mappable of each knob
+    std::vector<int> rowParams; // index in ids::mappable of each row
 };

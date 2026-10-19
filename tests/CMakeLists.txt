@@ -13,6 +13,7 @@ add_executable(grain_tests
     MidiTest.cpp
     GainTest.cpp
     RoutingTest.cpp
+    ActivityTest.cpp
     AllocGuard.cpp)
 
 target_sources(grain_tests PRIVATE ${GRAIN_CORE_SOURCES})

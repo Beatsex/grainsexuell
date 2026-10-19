@@ -5,6 +5,7 @@
 #include <juce_audio_basics/juce_audio_basics.h>
 
 #include <array>
+#include <atomic>
 #include <cstdint>
 
 namespace grain::dsp
@@ -35,6 +36,7 @@ public:
 
     void prepare(double sampleRate);
     void process(float* const* ch, int numCh, int n, const Params& p);
+    int echoCount() const { return echoes.load(std::memory_order_relaxed); } // repeats heard so far (GUI activity)
 
 private:
     static constexpr int numTaps = 4;
@@ -65,5 +67,7 @@ private:
     float dryGain = 1.0f, wetGain = 0.0f, lastMix = -1.0f;
     double gap = 0.0; // frames until the next reverse snippet
     bool primed = false, wasActive = false;
+    double echoPhase = 0.0; // frames into the current tap step
+    std::atomic<int> echoes { 0 };
 };
 } // namespace grain::dsp

@@ -248,7 +248,7 @@ TEST_CASE("the editor builds, keeps its aspect ratio, remembers its size and fol
 
         // optional: GRAIN_SNAPSHOT_DIR=<dir> writes PNGs of the editor for a visual check
         if (const auto dir = juce::SystemStats::getEnvironmentVariable("GRAIN_SNAPSHOT_DIR", {}); dir.isNotEmpty())
-            for (int w : { 506, 760, 1400 })
+            for (int w : { 832, 1040, 1560 })
             {
                 editor->setSize(w, w * PluginEditor::designHeight / PluginEditor::designWidth);
                 juce::PNGImageFormat png;
@@ -271,4 +271,55 @@ TEST_CASE("the editor builds, keeps its aspect ratio, remembers its size and fol
     // a second editor opens at the remembered size
     std::unique_ptr<juce::AudioProcessorEditor> again(p.createEditor());
     REQUIRE(again->getWidth() == 1000);
+}
+
+TEST_CASE("editor snapshot while playing (only with GRAIN_SNAPSHOT_DIR)")
+{
+    const auto dir = juce::SystemStats::getEnvironmentVariable("GRAIN_SNAPSHOT_DIR", {});
+    if (dir.isEmpty())
+        return;
+    juce::ScopedJuceInitialiser_GUI gui;
+    PluginProcessor p;
+    prepare(p);
+    const auto set = [&p](const char* id, float plain) {
+        auto* prm = p.apvts.getParameter(id);
+        prm->setValueNotifyingHost(prm->convertTo0to1(plain));
+    };
+    set(grain::ids::family, 1.0f); // Cloud
+    set(grain::ids::variant, 1.0f);
+    set(grain::ids::swarm, 0.85f);
+    set(grain::ids::scatter, 0.55f);
+    set(grain::ids::haze, 0.35f);
+    set(grain::ids::mix, 0.7f);
+    set(grain::ids::family2, 4.0f); // Tap after it
+    set(grain::ids::variant2, 3.0f);
+    set(grain::ids::mix2, 0.4f);
+
+    auto* editor = dynamic_cast<PluginEditor*>(p.createEditor());
+    REQUIRE(editor != nullptr);
+    std::unique_ptr<juce::AudioProcessorEditor> owner(editor);
+    editor->setSize(2080, 1240);
+
+    juce::AudioBuffer<float> buffer(2, 256);
+    juce::MidiBuffer midi;
+    juce::Random rng(7);
+    for (int block = 0; block < 48000 * 5 / 256; ++block) // 5 s of plucky noise bursts
+    {
+        for (int i = 0; i < 256; ++i)
+        {
+            const int t = (block * 256 + i) % 12000;
+            const float env = std::exp(-static_cast<float>(t) / 1500.0f);
+            buffer.setSample(0, i, 0.4f * env * (2.0f * rng.nextFloat() - 1.0f));
+            buffer.setSample(1, i, buffer.getSample(0, i));
+        }
+        p.processBlock(buffer, midi);
+        if (block % 12 == 0) // ~15 Hz, like the editor timer
+            editor->refresh();
+    }
+    juce::PNGImageFormat png;
+    juce::FileOutputStream out(juce::File(dir).getChildFile("editor_live_2080.png"));
+    REQUIRE(out.openedOk());
+    out.setPosition(0);
+    out.truncate();
+    png.writeImageToStream(editor->createComponentSnapshot(editor->getLocalBounds()), out);
 }

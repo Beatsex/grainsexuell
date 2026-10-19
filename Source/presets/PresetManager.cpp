@@ -134,6 +134,18 @@ void PresetManager::resetSlotB()
             param->setValueNotifyingHost(param->getDefaultValue());
 }
 
+void PresetManager::applyInit()
+{
+    for (auto* id : soundIds)
+        if (auto* param = apvts.getParameter(id))
+            param->setValueNotifyingHost(param->getDefaultValue());
+    resetSlotB();
+
+    const juce::ScopedLock lock(nameLock);
+    name = initName;
+    factoryIndex = -1;
+}
+
 bool PresetManager::applyFactory(int index)
 {
     if (index < 0 || index >= numFactory)
