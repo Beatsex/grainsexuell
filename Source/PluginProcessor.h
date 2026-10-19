@@ -4,16 +4,13 @@
 #include "midi/MidiMap.h"
 #include "presets/PresetManager.h"
 #include "dsp/AutoGain.h"
-#include "dsp/Cloud.h"
+#include "dsp/DualEngine.h"
 #include "dsp/Gain.h"
 #include "dsp/Hold.h"
 #include "dsp/Looper.h"
 #include "dsp/Lowpass.h"
 #include "dsp/ModDelay.h"
-#include "dsp/Mosaic.h"
 #include "dsp/Reverb.h"
-#include "dsp/Shard.h"
-#include "dsp/Tap.h"
 
 #include <atomic>
 
@@ -60,9 +57,9 @@ public:
     void applyPendingMidi();
 
     float autoGainDb() const { return autoGainShown.load(std::memory_order_relaxed); }
-    int mosaicGrabCount() const { return mosaic.grabCount(); }
-    int cloudGrainCount() const { return cloud.grainsSpawned(); }
-    int shardSliceCount() const { return shard.slicesPlayed(); }
+    int mosaicGrabCount() const { return engines.a.mosaic.grabCount(); }
+    int cloudGrainCount() const { return engines.a.cloud.grainsSpawned(); }
+    int shardSliceCount() const { return engines.a.shard.slicesPlayed(); }
 
 private:
     void loadMidiMap(const juce::ValueTree& map);
@@ -100,16 +97,19 @@ private:
     std::atomic<float>* mixParam;
     std::atomic<float>* familyParam;
     std::atomic<float>* variantParam;
+    std::atomic<float>* family2Param;
+    std::atomic<float>* variant2Param;
+    std::atomic<float>* mix2Param;
+    std::atomic<float>* route2Param;
+
+    grain::dsp::DualEngine::Params engineParams(double bpm) const;
 
     // auto gain wraps the chain; chain = effect engine (Mosaic, Cloud; other families later) -> pitch modulation -> reverb -> low-pass
     grain::dsp::Gain inGain, outGain; // first and last stage
     grain::dsp::AutoGain autoGain;
     grain::dsp::Hold hold;
     grain::dsp::Looper looper;
-    grain::dsp::Mosaic mosaic;
-    grain::dsp::Cloud cloud;
-    grain::dsp::Shard shard;
-    grain::dsp::Tap tap;
+    grain::dsp::DualEngine engines; // slot A (Family) and the optional slot B (Family B), serial or parallel
     grain::dsp::ModDelay modDelay;
     grain::dsp::Reverb reverb;
     grain::dsp::Lowpass lowpass;

@@ -45,6 +45,7 @@ private:
     juce::File fileFor(const juce::String& cleanName) const;
     bool applyXml(const juce::XmlElement& xml);
     void setSound(const char* id, float plain);
+    void resetSlotB();
 
     juce::AudioProcessorValueTreeState& apvts;
     juce::File folder;

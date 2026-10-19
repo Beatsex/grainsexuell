@@ -15,6 +15,9 @@ bool isSoundId(const juce::String& id)
     for (auto* known : soundIds)
         if (id == known)
             return true;
+    for (auto* known : slotBIds)
+        if (id == known)
+            return true;
     return false;
 }
 } // namespace
@@ -124,6 +127,13 @@ void PresetManager::setSound(const char* id, float plain)
     param->setValueNotifyingHost(param->convertTo0to1(isChoice ? std::round(plain) : plain)); // clamps to the range
 }
 
+void PresetManager::resetSlotB()
+{
+    for (auto* id : slotBIds)
+        if (auto* param = apvts.getParameter(id))
+            param->setValueNotifyingHost(param->getDefaultValue());
+}
+
 bool PresetManager::applyFactory(int index)
 {
     if (index < 0 || index >= numFactory)
@@ -131,6 +141,7 @@ bool PresetManager::applyFactory(int index)
     const auto& preset = factory()[static_cast<size_t>(index)];
     for (size_t i = 0; i < soundIds.size(); ++i)
         setSound(soundIds[i], preset.values[i]);
+    resetSlotB();
 
     const juce::ScopedLock lock(nameLock);
     name = preset.name;
@@ -142,6 +153,7 @@ bool PresetManager::applyXml(const juce::XmlElement& xml)
 {
     if (! xml.hasTagName("GrainPreset") || xml.getIntAttribute("version", 0) < 1)
         return false;
+    resetSlotB(); // a file from before slot B leaves B off; a newer file sets it below
     for (auto* e : xml.getChildWithTagNameIterator("P"))
     {
         const auto id = e->getStringAttribute("id");
@@ -185,7 +197,9 @@ bool PresetManager::saveUser(const juce::String& rawName)
     juce::XmlElement xml("GrainPreset");
     xml.setAttribute("version", formatVersion);
     xml.setAttribute("name", clean);
-    for (auto* id : soundIds)
+    std::vector<const char*> ids(soundIds.begin(), soundIds.end());
+    ids.insert(ids.end(), slotBIds.begin(), slotBIds.end());
+    for (auto* id : ids)
         if (auto* param = apvts.getParameter(id))
         {
             auto* e = xml.createNewChildElement("P");

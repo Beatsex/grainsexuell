@@ -28,7 +28,11 @@ PluginProcessor::PluginProcessor()
       scatterParam(apvts.getRawParameterValue(grain::ids::scatter)),
       mixParam(apvts.getRawParameterValue(grain::ids::mix)),
       familyParam(apvts.getRawParameterValue(grain::ids::family)),
-      variantParam(apvts.getRawParameterValue(grain::ids::variant))
+      variantParam(apvts.getRawParameterValue(grain::ids::variant)),
+      family2Param(apvts.getRawParameterValue(grain::ids::family2)),
+      variant2Param(apvts.getRawParameterValue(grain::ids::variant2)),
+      mix2Param(apvts.getRawParameterValue(grain::ids::mix2)),
+      route2Param(apvts.getRawParameterValue(grain::ids::route2))
 {
     for (size_t i = 0; i < mappedParams.size(); ++i)
     {
@@ -55,10 +59,7 @@ void PluginProcessor::prepareToPlay(double sampleRate, int)
     autoGain.prepare(sampleRate);
     hold.prepare(sampleRate);
     looper.prepare(sampleRate); // 60 s stereo base + overdub layer
-    mosaic.prepare(sampleRate);
-    cloud.prepare(sampleRate);
-    shard.prepare(sampleRate);
-    tap.prepare(sampleRate);
+    engines.prepare(sampleRate, engineParams(120.0));
     modDelay.prepare(sampleRate);
     reverb.prepare(sampleRate);
     lowpass.prepare(sampleRate);
@@ -128,13 +129,7 @@ void PluginProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiB
                                                   bpm };
     if (loopPre)
         looper.process(ch, numCh, n, loopParams);
-    const float swarm = swarmParam->load(), tail = tailParam->load(), span = spanParam->load();
-    const float scatter = scatterParam->load(), mix = mixParam->load();
-    const int variant = static_cast<int>(variantParam->load() + 0.5f), family = static_cast<int>(familyParam->load() + 0.5f);
-    mosaic.process(ch, numCh, n, { swarm, tail, span, scatter, mix, variant, family == 0 });
-    cloud.process(ch, numCh, n, { swarm, tail, span, scatter, mix, variant, family == 1 });
-    shard.process(ch, numCh, n, { swarm, tail, span, scatter, mix, variant, family == 2, bpm });
-    tap.process(ch, numCh, n, { swarm, tail, span, scatter, mix, variant, family == 3, bpm });
+    engines.process(ch, numCh, n, engineParams(bpm));
     modDelay.process(ch, numCh, n, bendParam->load());
     reverb.process(ch, numCh, n, hazeParam->load(), static_cast<int>(hazeModeParam->load() + 0.5f));
     lowpass.process(ch, numCh, n, duskParam->load());
@@ -143,6 +138,22 @@ void PluginProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiB
         looper.process(ch, numCh, n, loopParams); // records and plays the finished output
     outGain.process(ch, numCh, n, outgainParam->load()); // last stage (the looper has recorded before it)
     autoGainShown.store(autoGain.gainDb(), std::memory_order_relaxed);
+}
+
+grain::dsp::DualEngine::Params PluginProcessor::engineParams(double bpm) const
+{
+    const auto index = [](const std::atomic<float>* prm) { return static_cast<int>(prm->load() + 0.5f); };
+    grain::dsp::DualEngine::Params p;
+    p.a = { swarmParam->load(), tailParam->load(), spanParam->load(), scatterParam->load(), mixParam->load(),
+            index(familyParam), index(variantParam), bpm };
+    p.b = p.a; // B shares the macros; it has its own family, variant and mix
+    const int familyB = index(family2Param) - 1; // -1 = Off
+    p.bOn = familyB >= 0;
+    p.b.family = std::max(0, familyB);
+    p.b.variant = index(variant2Param);
+    p.b.mix = mix2Param->load();
+    p.route = index(route2Param);
+    return p;
 }
 
 juce::AudioProcessorEditor* PluginProcessor::createEditor()

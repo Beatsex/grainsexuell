@@ -31,6 +31,7 @@ set(GRAIN_CORE_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/presets/PresetManager.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/dsp/Capture.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/dsp/Cloud.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Source/dsp/DualEngine.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/dsp/Hold.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/dsp/Looper.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/dsp/Mosaic.cpp

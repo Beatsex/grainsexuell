@@ -49,7 +49,7 @@ TEST_CASE("every parameter is mappable and ids are unique")
         for (size_t j = i + 1; j < grain::ids::mappable.size(); ++j)
             REQUIRE(juce::String(grain::ids::mappable[i]) != grain::ids::mappable[j]);
     }
-    REQUIRE(grain::ids::mappable.size() == 22);
+    REQUIRE(grain::ids::mappable.size() == 26);
     for (size_t i = 0; i < grain::ids::knobs.size(); ++i) // the editor relies on knobs being the first entries
         REQUIRE(juce::String(grain::ids::knobs[i]) == grain::ids::mappable[i]);
 }

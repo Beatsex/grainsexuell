@@ -53,6 +53,14 @@ juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
     add(ids::ingain, "Input Gain", trim, 0.0f, "dB");
     add(ids::outgain, "Output Gain", trim, 0.0f, "dB");
 
+    layout.add(std::make_unique<juce::AudioParameterChoice>(
+        juce::ParameterID { ids::family2, 1 }, "Family B", juce::StringArray { "Off", "Mosaic", "Cloud", "Shard", "Tap" }, 0));
+    layout.add(std::make_unique<juce::AudioParameterChoice>(
+        juce::ParameterID { ids::variant2, 1 }, "Variant B", juce::StringArray { "A", "B", "C", "D" }, 0));
+    add(ids::mix2, "Mix B", unit, 0.5f);
+    layout.add(std::make_unique<juce::AudioParameterChoice>(
+        juce::ParameterID { ids::route2, 1 }, "Routing B", juce::StringArray { "Serial", "Parallel" }, 0));
+
     return layout;
 }
 } // namespace grain

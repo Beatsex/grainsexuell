@@ -13,7 +13,7 @@ public:
     void resized() override;
     void mouseDown(const juce::MouseEvent&) override; // right-click: MIDI learn menu
 
-    static constexpr int designWidth = 760, designHeight = 470;
+    static constexpr int designWidth = 760, designHeight = 512;
 
 private:
     struct Target
@@ -36,11 +36,11 @@ private:
     juce::TooltipWindow tooltips { this, 600 };
 
     juce::TextButton prevPreset { "<" }, nextPreset { ">" }, presetName, savePreset { "Save" };
-    grain::gui::ChoiceRow family, variant;
+    grain::gui::ChoiceRow family, variant, familyB, variantB, routeB;
     juce::OwnedArray<grain::gui::Knob> knobs;
     grain::gui::ChoiceRow hazeMode, loop, loopSpeed, loopPos;
     juce::TextButton autoGain, hold, loopReverse, loopQuant, loopBurst, loopUndo;
-    juce::ParameterAttachment familyWatcher;
+    juce::ParameterAttachment familyWatcher, familyBWatcher;
     juce::OwnedArray<juce::ButtonParameterAttachment> toggleAttachments;
     juce::Label status, meter;
 

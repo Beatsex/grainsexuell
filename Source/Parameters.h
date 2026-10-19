@@ -34,13 +34,18 @@ inline constexpr const char* looppos = "looppos";         // Pre-FX or Post-FX
 inline constexpr const char* ingain = "ingain";   // input trim in dB: first stage, before Auto Gain
 inline constexpr const char* outgain = "outgain"; // output trim in dB: last stage
 
+inline constexpr const char* family2 = "family2";   // second engine slot: Off, Mosaic, Cloud, Shard, Tap
+inline constexpr const char* variant2 = "variant2"; // A..D for slot B
+inline constexpr const char* mix2 = "mix2";         // dry / wet of slot B
+inline constexpr const char* route2 = "route2";     // Serial (A -> B) or Parallel ((A + B) / 2)
+
 inline constexpr std::array knobs { swarm, tail, span, scatter, bend, dusk, haze, mix };
 inline constexpr std::array selectors { family, variant, hazemode };
 
 // every parameter a MIDI CC can drive (all of them); the index in this list is what the MIDI map stores
 inline constexpr std::array mappable { swarm, tail, span, scatter, bend, dusk, haze, mix, family, variant, hazemode,
                                        autogain, hold, loop, loopspeed, loopreverse, loopquant, loopburst, loopundo, looppos,
-                                       ingain, outgain };
+                                       ingain, outgain, family2, variant2, mix2, route2 };
 } // namespace grain::ids
 
 namespace grain

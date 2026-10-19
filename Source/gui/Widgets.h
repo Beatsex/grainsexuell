@@ -163,7 +163,7 @@ public:
         : name(labelText), attachment(param, slider)
     {
         slider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
-        slider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 70, 18);
+        slider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 62, 18);
         slider.setColour(juce::Slider::textBoxTextColourId, palette::textDim);
         slider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
         slider.setRotaryParameters(juce::degreesToRadians(225.0f), juce::degreesToRadians(495.0f), true);

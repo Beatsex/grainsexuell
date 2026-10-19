@@ -33,11 +33,15 @@ PluginEditor::PluginEditor(PluginProcessor& p)
       processor(p),
       family(param(p, ids::family), { "Mosaic", "Cloud", "Shard", "Tap" }, "Family"),
       variant(param(p, ids::variant), variantNames[0], "Variant"),
+      familyB(param(p, ids::family2), { "B off", "Mosaic", "Cloud", "Shard", "Tap" }, "Family B"),
+      variantB(param(p, ids::variant2), { "A", "B", "C", "D" }, "Variant B"),
+      routeB(param(p, ids::route2), { "Serial", "Parallel" }, "Routing B"),
       hazeMode(param(p, ids::hazemode), { "Room", "Plate", "Hall", "Swell" }, "Haze mode"),
       loop(param(p, ids::loop), { "Off", "Rec", "Play", "Dub" }, "Loop"),
       loopSpeed(param(p, ids::loopspeed), { "1/2", "1x", "2x" }, "Loop speed"),
       loopPos(param(p, ids::looppos), { "Pre-FX", "Post-FX" }, "Loop position"),
-      familyWatcher(param(p, ids::family), [this](float) { updateVariantLabels(); })
+      familyWatcher(param(p, ids::family), [this](float) { updateVariantLabels(); }),
+      familyBWatcher(param(p, ids::family2), [this](float) { updateVariantLabels(); })
 {
     setLookAndFeel(&look);
     setTitle("grainsexuell");
@@ -58,11 +62,17 @@ PluginEditor::PluginEditor(PluginProcessor& p)
     addAndMakeVisible(variant);
     addTarget(family, ids::family);
     addTarget(variant, ids::variant);
+    for (auto* row : { &familyB, &variantB, &routeB })
+        addAndMakeVisible(row);
+    addTarget(familyB, ids::family2);
+    addTarget(variantB, ids::variant2);
+    addTarget(routeB, ids::route2);
 
     const std::pair<const char*, const char*> knobList[] { { ids::ingain, "In" },    { ids::swarm, "Swarm" }, { ids::tail, "Tail" },
                                                            { ids::span, "Span" },   { ids::scatter, "Scatter" },
                                                            { ids::bend, "Bend" },   { ids::dusk, "Dusk" },
                                                            { ids::haze, "Haze" },   { ids::mix, "Mix" },
+                                                           { ids::mix2, "Mix B" },
                                                            { ids::outgain, "Out" } };
     for (const auto& [id, text] : knobList)
     {
@@ -148,6 +158,11 @@ void PluginEditor::updateVariantLabels()
     const int f = juce::jlimit(0, 3, juce::roundToInt(param(processor, ids::family).convertFrom0to1(
                                          param(processor, ids::family).getValue())));
     variant.setLabels(variantNames[f]);
+
+    const int fb = juce::roundToInt(param(processor, ids::family2).convertFrom0to1(param(processor, ids::family2).getValue())) - 1;
+    variantB.setLabels(fb >= 0 && fb < 4 ? variantNames[fb] : juce::StringArray { "A", "B", "C", "D" });
+    variantB.setEnabled(fb >= 0);
+    routeB.setEnabled(fb >= 0);
 }
 
 void PluginEditor::paint(juce::Graphics& g)
@@ -155,11 +170,11 @@ void PluginEditor::paint(juce::Graphics& g)
     g.fillAll(gui::palette::background);
     const float s = static_cast<float>(getWidth()) / designWidth;
     g.setColour(gui::palette::panel);
-    g.fillRoundedRectangle(12.0f * s, 132.0f * s, (designWidth - 24.0f) * s, 198.0f * s, 8.0f * s);
-    g.fillRoundedRectangle(12.0f * s, 336.0f * s, (designWidth - 24.0f) * s, 92.0f * s, 8.0f * s);
+    g.fillRoundedRectangle(12.0f * s, 174.0f * s, (designWidth - 24.0f) * s, 198.0f * s, 8.0f * s);
+    g.fillRoundedRectangle(12.0f * s, 378.0f * s, (designWidth - 24.0f) * s, 92.0f * s, 8.0f * s);
     g.setColour(gui::palette::textDim);
     g.setFont(juce::FontOptions(11.0f * s));
-    g.drawText("LOOPER", juce::Rectangle<float>(24.0f * s, 340.0f * s, 80.0f * s, 14.0f * s), juce::Justification::left);
+    g.drawText("LOOPER", juce::Rectangle<float>(24.0f * s, 382.0f * s, 80.0f * s, 14.0f * s), juce::Justification::left);
 }
 
 void PluginEditor::resized()
@@ -180,19 +195,22 @@ void PluginEditor::resized()
     place(hazeMode, 452, 52, 296, 34);
     place(autoGain, 452, 94, 144, 34);
     place(hold, 604, 94, 144, 34);
+    place(familyB, 12, 136, 300, 34);
+    place(variantB, 320, 136, 280, 34);
+    place(routeB, 608, 136, 140, 34);
 
     const float knobWidth = (designWidth - 24.0f) / static_cast<float>(knobs.size());
     for (int i = 0; i < knobs.size(); ++i)
-        place(*knobs[i], 12.0f + knobWidth * static_cast<float>(i), 136, knobWidth, 190);
+        place(*knobs[i], 12.0f + knobWidth * static_cast<float>(i), 178, knobWidth, 190);
 
-    place(loop, 24, 358, 220, 34);
-    place(loopSpeed, 256, 358, 150, 34);
-    place(loopPos, 418, 358, 140, 34);
-    place(loopReverse, 24, 394, 110, 30);
-    place(loopQuant, 142, 394, 110, 30);
-    place(loopBurst, 260, 394, 110, 30);
-    place(loopUndo, 378, 394, 110, 30);
-    place(status, 12, 436, 736, 24);
+    place(loop, 24, 400, 220, 34);
+    place(loopSpeed, 256, 400, 150, 34);
+    place(loopPos, 418, 400, 140, 34);
+    place(loopReverse, 24, 436, 110, 30);
+    place(loopQuant, 142, 436, 110, 30);
+    place(loopBurst, 260, 436, 110, 30);
+    place(loopUndo, 378, 436, 110, 30);
+    place(status, 12, 478, 736, 24);
 
     if (getWidth() >= designWidth * 2 / 3) // not while the window is being torn down
         processor.editorWidth = getWidth();

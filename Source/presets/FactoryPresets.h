@@ -10,6 +10,10 @@ namespace grain::presets
 inline constexpr std::array<const char*, 11> soundIds { "swarm", "tail", "span", "scatter", "bend", "dusk",
                                                         "haze", "mix", "family", "variant", "hazemode" };
 
+// Slot B (the second engine) belongs to a preset too, but the factory table does not list it: a factory preset, or a
+// user file saved before slot B existed, turns B off (its parameter defaults).
+inline constexpr std::array<const char*, 4> slotBIds { "family2", "variant2", "mix2", "route2" };
+
 struct Preset
 {
     const char* name;
