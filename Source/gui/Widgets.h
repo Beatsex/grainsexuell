@@ -171,7 +171,12 @@ public:
         slider.setTitle(labelText);
         slider.setTooltip(labelText + ": drag, double-click to reset, right-click for MIDI learn");
         // read-outs: Hz / kHz for the filter, percent for the 0..1 macros (the attachment's own text has 7 decimals)
-        if (param.getLabel() == "Hz")
+        if (param.getLabel() == "dB")
+        {
+            slider.textFromValueFunction = [](double v) { return (v > 0.0 ? "+" : "") + juce::String(v, 1) + " dB"; };
+            slider.valueFromTextFunction = [](const juce::String& t) { return t.getDoubleValue(); };
+        }
+        else if (param.getLabel() == "Hz")
         {
             slider.textFromValueFunction = [](double v) {
                 return v >= 1000.0 ? juce::String(v / 1000.0, 1) + " kHz" : juce::String(juce::roundToInt(v)) + " Hz";

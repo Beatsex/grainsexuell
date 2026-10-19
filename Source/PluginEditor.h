@@ -45,4 +45,5 @@ private:
     juce::Label status, meter;
 
     std::vector<Target> targets;
+    std::vector<int> knobParams; // index in ids::mappable of each knob
 };

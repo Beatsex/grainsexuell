@@ -59,7 +59,17 @@ TEST_CASE("parameter layout: 8 knobs + 3 selectors + auto gain and hold toggles,
         REQUIRE(! toggle(id)->get());
     }
 
-    REQUIRE(p.getParameters().size() == 20);
+    for (auto* id : { grain::ids::ingain, grain::ids::outgain })
+    {
+        auto* trim = dynamic_cast<juce::AudioParameterFloat*>(p.apvts.getParameter(id));
+        INFO(id);
+        REQUIRE(trim != nullptr);
+        REQUIRE(trim->get() == 0.0f); // 0 dB keeps the output bit-exact
+        REQUIRE(trim->getNormalisableRange().start == -24.0f);
+        REQUIRE(trim->getNormalisableRange().end == 24.0f);
+    }
+
+    REQUIRE(p.getParameters().size() == 22);
 }
 
 TEST_CASE("loading a state saved before the hold parameter existed leaves Hold off")

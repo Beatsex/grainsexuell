@@ -49,6 +49,10 @@ juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
     layout.add(std::make_unique<juce::AudioParameterChoice>(
         juce::ParameterID { ids::looppos, 1 }, "Loop Position", juce::StringArray { "Pre-FX", "Post-FX" }, 1));
 
+    const juce::NormalisableRange<float> trim { -24.0f, 24.0f, 0.1f };
+    add(ids::ingain, "Input Gain", trim, 0.0f, "dB");
+    add(ids::outgain, "Output Gain", trim, 0.0f, "dB");
+
     return layout;
 }
 } // namespace grain

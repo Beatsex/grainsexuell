@@ -7,6 +7,8 @@ PluginProcessor::PluginProcessor()
                          .withOutput("Output", juce::AudioChannelSet::stereo(), true)),
       apvts(*this, nullptr, "state", grain::createLayout()),
       presets(apvts, grain::presets::PresetManager::defaultUserFolder()),
+      ingainParam(apvts.getRawParameterValue(grain::ids::ingain)),
+      outgainParam(apvts.getRawParameterValue(grain::ids::outgain)),
       bendParam(apvts.getRawParameterValue(grain::ids::bend)),
       hazeParam(apvts.getRawParameterValue(grain::ids::haze)),
       hazeModeParam(apvts.getRawParameterValue(grain::ids::hazemode)),
@@ -48,6 +50,8 @@ void PluginProcessor::applyPendingMidi()
 
 void PluginProcessor::prepareToPlay(double sampleRate, int)
 {
+    inGain.prepare(sampleRate);
+    outGain.prepare(sampleRate);
     autoGain.prepare(sampleRate);
     hold.prepare(sampleRate);
     looper.prepare(sampleRate); // 60 s stereo base + overdub layer
@@ -102,6 +106,8 @@ void PluginProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiB
         for (int i = 0; i < n; ++i)
             ch[c][i] = std::isfinite(ch[c][i]) ? std::clamp(ch[c][i], -1.0e4f, 1.0e4f) : 0.0f;
 
+    inGain.process(ch, numCh, n, ingainParam->load()); // first stage: also drives Auto Gain's measurement
+
     double bpm = 120.0; // no host tempo (standalone): fixed fallback
     if (auto* head = getPlayHead())
         if (auto position = head->getPosition())
@@ -135,6 +141,7 @@ void PluginProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiB
     autoGain.end(ch, numCh, n);
     if (! loopPre)
         looper.process(ch, numCh, n, loopParams); // records and plays the finished output
+    outGain.process(ch, numCh, n, outgainParam->load()); // last stage (the looper has recorded before it)
     autoGainShown.store(autoGain.gainDb(), std::memory_order_relaxed);
 }
 

@@ -31,12 +31,16 @@ inline constexpr const char* loopburst = "loopburst";     // toggle: stutter the
 inline constexpr const char* loopundo = "loopundo";       // momentary toggle: rising edge undoes the overdubs
 inline constexpr const char* looppos = "looppos";         // Pre-FX or Post-FX
 
+inline constexpr const char* ingain = "ingain";   // input trim in dB: first stage, before Auto Gain
+inline constexpr const char* outgain = "outgain"; // output trim in dB: last stage
+
 inline constexpr std::array knobs { swarm, tail, span, scatter, bend, dusk, haze, mix };
 inline constexpr std::array selectors { family, variant, hazemode };
 
 // every parameter a MIDI CC can drive (all of them); the index in this list is what the MIDI map stores
 inline constexpr std::array mappable { swarm, tail, span, scatter, bend, dusk, haze, mix, family, variant, hazemode,
-                                       autogain, hold, loop, loopspeed, loopreverse, loopquant, loopburst, loopundo, looppos };
+                                       autogain, hold, loop, loopspeed, loopreverse, loopquant, loopburst, loopundo, looppos,
+                                       ingain, outgain };
 } // namespace grain::ids
 
 namespace grain

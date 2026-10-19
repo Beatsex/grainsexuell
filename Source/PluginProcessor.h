@@ -5,6 +5,7 @@
 #include "presets/PresetManager.h"
 #include "dsp/AutoGain.h"
 #include "dsp/Cloud.h"
+#include "dsp/Gain.h"
 #include "dsp/Hold.h"
 #include "dsp/Looper.h"
 #include "dsp/Lowpass.h"
@@ -77,6 +78,8 @@ private:
         PluginProcessor& owner;
     };
 
+    std::atomic<float>* ingainParam;
+    std::atomic<float>* outgainParam;
     std::atomic<float>* bendParam;
     std::atomic<float>* hazeParam;
     std::atomic<float>* hazeModeParam;
@@ -99,6 +102,7 @@ private:
     std::atomic<float>* variantParam;
 
     // auto gain wraps the chain; chain = effect engine (Mosaic, Cloud; other families later) -> pitch modulation -> reverb -> low-pass
+    grain::dsp::Gain inGain, outGain; // first and last stage
     grain::dsp::AutoGain autoGain;
     grain::dsp::Hold hold;
     grain::dsp::Looper looper;

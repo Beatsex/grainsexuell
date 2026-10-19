@@ -59,15 +59,17 @@ PluginEditor::PluginEditor(PluginProcessor& p)
     addTarget(family, ids::family);
     addTarget(variant, ids::variant);
 
-    const std::pair<const char*, const char*> knobList[] { { ids::swarm, "Swarm" }, { ids::tail, "Tail" },
+    const std::pair<const char*, const char*> knobList[] { { ids::ingain, "In" },    { ids::swarm, "Swarm" }, { ids::tail, "Tail" },
                                                            { ids::span, "Span" },   { ids::scatter, "Scatter" },
                                                            { ids::bend, "Bend" },   { ids::dusk, "Dusk" },
-                                                           { ids::haze, "Haze" },   { ids::mix, "Mix" } };
+                                                           { ids::haze, "Haze" },   { ids::mix, "Mix" },
+                                                           { ids::outgain, "Out" } };
     for (const auto& [id, text] : knobList)
     {
         auto* k = knobs.add(new gui::Knob(param(p, id), text));
         addAndMakeVisible(k);
         addTarget(*k, id);
+        knobParams.push_back(indexOf(id));
     }
 
     addAndMakeVisible(hazeMode);
@@ -179,7 +181,7 @@ void PluginEditor::resized()
     place(autoGain, 452, 94, 144, 34);
     place(hold, 604, 94, 144, 34);
 
-    const float knobWidth = (designWidth - 24.0f) / 8.0f;
+    const float knobWidth = (designWidth - 24.0f) / static_cast<float>(knobs.size());
     for (int i = 0; i < knobs.size(); ++i)
         place(*knobs[i], 12.0f + knobWidth * static_cast<float>(i), 136, knobWidth, 190);
 
@@ -204,8 +206,8 @@ void PluginEditor::timerCallback()
     // captions: "CC n" on mapped knobs, "learning" while waiting
     for (int i = 0; i < knobs.size(); ++i)
     {
-        const int cc = map.ccFor(i); // knobs are the first 8 entries of ids::mappable
-        knobs[i]->setCaption(learning == i ? "(move a CC)" : (cc >= 0 ? "CC " + juce::String(cc) : juce::String()));
+        const int cc = map.ccFor(knobParams[static_cast<size_t>(i)]);
+        knobs[i]->setCaption(learning == knobParams[static_cast<size_t>(i)] ? "(move a CC)" : (cc >= 0 ? "CC " + juce::String(cc) : juce::String()));
     }
     if (learning >= 0)
         status.setText(juce::String("Learning ") + ids::mappable[static_cast<size_t>(learning)]
