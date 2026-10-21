@@ -26,22 +26,30 @@ SolidCompression=yes
 WizardStyle=modern
 UninstallDisplayName=grainsexuell {#AppVersion} beta
 InfoBeforeFile=README.txt
+; the presets component writes to the user's %APPDATA%, which is intended
+UsedUserAreasWarning=no
 
 [Types]
-Name: "full"; Description: "VST3 plugin and standalone app"
+Name: "full"; Description: "VST3 plugin, standalone app and 40 extra presets"
 Name: "custom"; Description: "Choose"; Flags: iscustom
 
 [Components]
 Name: "vst3"; Description: "VST3 plugin (Common Files\VST3)"; Types: full custom
 Name: "standalone"; Description: "Standalone app"; Types: full custom
+Name: "presets"; Description: "40 extra presets (User folder)"; Types: full custom
 
 [Files]
 Source: "{#Artefacts}\VST3\grainsexuell.vst3\*"; DestDir: "{commoncf64}\VST3\grainsexuell.vst3"; Components: vst3; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "{#Artefacts}\Standalone\grainsexuell.exe"; DestDir: "{app}"; Components: standalone; Flags: ignoreversion
 Source: "README.txt"; DestDir: "{app}"; Flags: ignoreversion isreadme
+Source: "USER_MANUAL.txt"; DestDir: "{app}"; Flags: ignoreversion
+Source: "USER_MANUAL.html"; DestDir: "{app}"; Flags: ignoreversion
+; never overwrite a preset the user already has (or edited), and keep them on uninstall like their own presets
+Source: "Presets\*.xml"; DestDir: "{userappdata}\grainsexuell\Presets"; Components: presets; Flags: onlyifdoesntexist uninsneveruninstall
 
 [Icons]
 Name: "{group}\grainsexuell"; Filename: "{app}\grainsexuell.exe"; Components: standalone
+Name: "{group}\grainsexuell User Manual"; Filename: "{app}\USER_MANUAL.html"
 Name: "{group}\Uninstall grainsexuell"; Filename: "{uninstallexe}"
 
 [Run]

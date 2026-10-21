@@ -1,0 +1,473 @@
+=====================================================================
+  grainsexuell  -  USER MANUAL
+  beta 0.2.0  -  by beatsexuell
+=====================================================================
+
+CONTENTS
+  1. What grainsexuell is
+  2. Getting started
+  3. The window at a glance
+  4. Signal flow
+  5. The engines (Mosaic, Cloud, Shard, Tap)
+  6. Engine B: serial and parallel
+  7. The sound controls (rows 01-11)
+  8. Haze modes
+  9. Auto Gain
+ 10. Hold
+ 11. The looper
+ 12. Presets
+ 13. MIDI control
+ 14. Tempo
+ 15. Tips and starting points
+ 16. Troubleshooting
+ 17. Reference: all parameters
+
+
+---------------------------------------------------------------------
+1. WHAT GRAINSEXUELL IS
+---------------------------------------------------------------------
+grainsexuell is an audio effect that chops what you play into small
+pieces - loops, grains, slices, echoes - and rearranges, layers and
+smears them into new sounds. It has:
+
+  - four effect engines (Mosaic, Cloud, Shard, Tap), each with four
+    variants, so 16 different characters,
+  - an optional second engine (B), in series or in parallel,
+  - a pitch wobble, a low-pass filter and a reverb after the engines,
+  - Hold, which freezes the last beat and keeps feeding it in,
+  - a 60-second phrase looper with overdub, undo, half/double speed,
+    reverse, quantize and burst,
+  - Auto Gain, input/output gain, presets and MIDI learn.
+
+It works on mono or stereo tracks and on any sample rate from
+44.1 to 192 kHz. Formats: VST3 plugin and standalone app.
+
+
+---------------------------------------------------------------------
+2. GETTING STARTED
+---------------------------------------------------------------------
+Install it with the setup program (see README.txt). Then:
+
+In a DAW
+  1. Rescan plugins (or restart the DAW).
+  2. Put grainsexuell on an audio track as an insert effect:
+     VST3 > beatsexuell > grainsexuell.
+  3. Play something into it. Guitar, keys, voice, drums and loops
+     all work. Short, clear notes show the effect best.
+
+Standalone
+  1. Start menu > grainsexuell.
+  2. Click Options and pick your audio device, input and output.
+     With an audio interface, use its ASIO driver for low latency.
+  3. Use headphones if you use a microphone, to avoid feedback.
+
+First five minutes
+  1. Pick "Init" from the preset list: everything back to default.
+  2. Try each engine (Mosaic / Cloud / Shard / Tap) and its variants
+     A-D while you play.
+  3. Move Swarm and Tail - the two biggest controls - from low to high.
+  4. Raise Haze for space, lower Dusk to darken.
+  5. Browse the factory presets.
+
+
+---------------------------------------------------------------------
+3. THE WINDOW AT A GLANCE
+---------------------------------------------------------------------
+Left (pink panel)
+  - ENGINE A: Mosaic / Cloud / Shard / Tap, variant A B C D
+  - ENGINE B: Off / Mosaic / Cloud / Shard / Tap, variant A B C D,
+    routing Serial / Parallel
+  - GRAIN ACTIVITY: how many events (loop grabs, grains, slices,
+    echo repeats) happen per second, and the last few seconds as bars.
+    Busy bars = busy effect. Flat = nothing is being triggered.
+
+Top
+  - Preset name: click it to open the preset list, Save, Save as.
+
+Right column
+  - Numbered rows 01-11: In, Swarm, Tail, Span, Scatter, Bend, Dusk,
+    Haze, Mix, Mix B, Out
+  - Haze mode: Room / Plate / Hall / Swell
+  - Switches: Auto Gain, Hold
+  - Looper section
+
+Handling
+  - Drag a slider to change it. Double-click to reset it to default.
+  - Switches show a square: filled = on, empty = off.
+  - Right-click any control for MIDI learn.
+  - Drag the bottom-right corner to resize the window (0.8x - 2x).
+    The size is remembered.
+
+
+---------------------------------------------------------------------
+4. SIGNAL FLOW
+---------------------------------------------------------------------
+
+  Input
+   -> In gain
+   -> Auto Gain (level in)
+   -> Hold (adds the frozen beat to the live input)
+   -> [Looper, if set to Pre-FX]
+   -> Engine A  ->  Engine B (Serial)   or   A + B side by side (Parallel)
+      (Mix sets the engines' dry / wet here)
+   -> Bend (pitch wobble)
+   -> Haze (reverb)
+   -> Dusk (low-pass)
+   -> Auto Gain (level out + safety ceiling)
+   -> [Looper, if set to Post-FX - the default]
+   -> Out gain
+   -> Output
+
+Things worth knowing from this:
+  - In gain hits everything, so it works like a drive control.
+  - Hold feeds the engines, so frozen audio still gets chopped.
+  - Bend, Haze and Dusk come after Mix, so they color the dry
+    signal too.
+  - Post-FX looper records exactly what you hear (before Out gain).
+  - Pre-FX looper records your dry playing; the engines then keep
+    processing the loop, so it changes every pass.
+
+
+---------------------------------------------------------------------
+5. THE ENGINES
+---------------------------------------------------------------------
+Pick one engine and one variant for slot A. The shared controls
+(Swarm, Tail, Span, Scatter) mean slightly different things in each
+engine - that is the point. Below, "what they do here" for each.
+
+MOSAIC - layered micro-loops
+  Keeps the last two seconds in memory, grabs a short piece as a loop
+  and plays it at several speeds at once (half, normal, double,
+  quadruple = octaves down and up).
+    A  Stack    all four layers: 0.5x 1x 2x 4x
+    B  Low      0.5x + 1x  (warm, an octave down)
+    C  High     1x + 2x + 4x  (bright, octaves up)
+    D  Tumble   0.5x and 2x played backwards
+  Swarm    how often a new loop is grabbed (slow ~3 s to fast ~0.1 s),
+           and how much of the high layers fades in
+  Tail     how long each loop lingers before fading
+  Span     loop length, 25 - 750 ms
+  Scatter  random start point and timing, wider stereo
+
+CLOUD - granular
+  Sprays up to 64 tiny overlapping grains from the recent past.
+    A  Mist       soft, even texture
+    B  Shimmer    brighter, sparkling
+    C  Murk       darker, thicker
+    D  Backwash   grains running backwards
+  Swarm    grain density, about 3 to 80 grains per second
+  Tail     feedback: grains of grains, builds a longer cloud
+  Span     grain length, 10 - 400 ms
+  Scatter  how far back in time grains are picked and how loosely
+           they are timed
+
+SHARD - glitch, tempo-synced slices
+  Cuts the input into slices on the beat grid and rearranges them.
+    A  Shuffle   plays random recent slices; Scatter adds a chance of
+                 reversed slices (up to 50%)
+    B  Crush     repeats the newest slice with bit reduction
+                 (12 down to 3 bits) and sample-rate crunch
+    C  Arp       remembers your last four notes and cycles them as an
+                 arpeggio, with pitch steps up to an octave
+    D  Stutter   freezes a slice and repeats it up to 8 times,
+                 each repeat a little quieter
+  Swarm    slice size, from 1/4 note down to 1/32 triplet
+  Tail     feedback (slices of slices)
+  Span     how many recent slices Shuffle chooses from
+  Scatter  randomness (and reverse chance in Shuffle)
+
+TAP - multitap delay, tempo-synced
+  Four echoes on the beat grid, each quieter than the last.
+    A  Echo        straight multitap delay
+    B  Ping-pong   echoes alternate left and right
+    C  Reverse     echoes play backwards
+    D  Cascade     uneven spacing, later echoes get darker
+  Swarm    echo step, 1/1 down to 1/16 (including triplets)
+  Tail     feedback - high values ring for a long time
+  Span     distance between the taps (1 - 4 steps)
+  Scatter  timing looseness
+  Note: Tap can get loud with high Tail and a held note, like any
+  feedback delay. Turn on Auto Gain if you need a safety ceiling.
+
+
+---------------------------------------------------------------------
+6. ENGINE B: SERIAL AND PARALLEL
+---------------------------------------------------------------------
+Engine B is a second engine. Off by default.
+
+  Off        only engine A runs.
+  Serial     A then B: B processes A's output. Example: Tap into
+             Cloud = echoes that dissolve into grains.
+  Parallel   A and B both process the input and are mixed 50/50.
+             Example: Mosaic (octaves) next to Shard (glitch).
+
+  Mix B      B's own dry/wet. In Serial, 0 = you hear only A.
+  B shares Swarm, Tail, Span and Scatter with A.
+
+Switching B on, off or changing the routing fades smoothly, so you
+can do it while playing. Engine B costs extra CPU.
+
+Factory presets turn B off. Your own saved presets remember B.
+
+
+---------------------------------------------------------------------
+7. THE SOUND CONTROLS (ROWS 01-11)
+---------------------------------------------------------------------
+01 IN       Input gain, -24 to +24 dB (default 0). Turn down a hot
+            signal; turn up to drive the engines harder. Presets do
+            not change it.
+02 SWARM    How busy the engine is (density / rate / slice size).
+            See section 5 for each engine. Default 50%.
+03 TAIL     Repeats and feedback: how long things keep going.
+            Default 50%.
+04 SPAN     Length: loop, grain, slice range or tap spacing.
+            Default 50%.
+05 SCATTER  Randomness in time, position and stereo. 0 = tight and
+            predictable. Default 0%.
+06 BEND     Pitch wobble (vibrato / tape warble), 0 = off.
+07 DUSK     Low-pass filter, 20 Hz - 20 kHz. Fully up = off.
+            Lower it to darken and tame the high layers.
+08 HAZE     Reverb amount, 0 = off. Type set by the Haze mode.
+09 MIX      Dry / wet for the whole effect. Default 50%.
+            0 = dry only, 100% = effect only.
+10 MIX B    Dry / wet of engine B (only matters when B is on).
+11 OUT      Output gain, -24 to +24 dB (default 0). Applied last.
+            Presets do not change it.
+
+Double-click any row to reset it.
+
+
+---------------------------------------------------------------------
+8. HAZE MODES
+---------------------------------------------------------------------
+  Room    short, about 0.5 s
+  Plate   medium, about 2 s (default)
+  Hall    long, about 4.5 s
+  Swell   very long, about 8 s - an ambient wash
+
+
+---------------------------------------------------------------------
+9. AUTO GAIN
+---------------------------------------------------------------------
+Off by default. When on, it:
+  - levels the input so the engines see a steady signal,
+  - brings the output back to roughly the input level,
+  - adds a soft ceiling so the output does not go over 0 dBFS.
+
+Turn it on when a preset jumps in volume or when high Tail values
+get too loud. With Auto Gain on, the IN control acts like a drive:
+you push the engines harder, but the output level stays similar.
+
+
+---------------------------------------------------------------------
+10. HOLD
+---------------------------------------------------------------------
+Hold freezes the last beat you played (one beat at the current
+tempo, between 0.15 and 2 seconds) and loops it seamlessly into the
+effect. You can keep playing over it; both go through the engine.
+
+  Hold on    freeze. The frozen beat fades in.
+  Hold off   the frozen beat fades out and recording resumes.
+
+Great for: a drone to play over, freezing a chord into Cloud,
+feeding Shard Stutter something constant. Map it to a footswitch
+or pad with MIDI learn.
+
+
+---------------------------------------------------------------------
+11. THE LOOPER
+---------------------------------------------------------------------
+A phrase looper up to 60 seconds long, stereo.
+
+Mode
+  Off     looper silent.
+  Rec     records from the start. Leaving Rec (to Play or Dub)
+          sets the loop length.
+  Play    plays the loop.
+  Dub     plays and adds what you play on top (overdub).
+
+Options
+  Speed      1/2  1x  2x  (an octave down / normal / an octave up)
+  Reverse    plays the loop backwards
+  Quantize   rounds the loop length to whole beats of the tempo, so
+             the loop stays in time with the song
+  Burst      while on, re-triggers a short stutter of the loop every
+             1/16 note; the loop itself keeps running underneath
+  Undo       first press removes the overdubs; the next press clears
+             the whole loop
+  Pre-FX / Post-FX
+             Post-FX (default): records the finished, effected sound.
+             Pre-FX: records your dry playing and sends the loop
+             through the engines, so the effect keeps evolving.
+
+Basic loop
+  1. Set Rec, play your phrase.
+  2. At the end of the phrase, switch to Play (or Dub to keep adding).
+  3. Undo if an overdub went wrong.
+  4. Off to stop.
+
+Notes
+  - Loop audio is NOT saved with your project or presets. Bounce or
+    record the output if you want to keep it.
+  - Each instance reserves memory for the looper (about 50 MB at
+    48 kHz, more at higher sample rates).
+
+
+---------------------------------------------------------------------
+12. PRESETS
+---------------------------------------------------------------------
+Click the preset name to open the list.
+
+  Init       everything back to default, engine B off.
+  Factory    16 presets, 4 per engine:
+               Mosaic: Tide Ladder, Cellar Door, Paper Stars,
+                       Falling Stairs
+               Cloud:  Soft Mist, Glass Weather, Peat Smoke,
+                       Backwash Hymn
+               Shard:  Loose Tiles, Bit Rain, Pulse Garden,
+                       Skipping Stone
+               Tap:    Copper Echo, Ping Lantern, Rewind Attic,
+                       Lantern Fall
+  User       your own presets.
+
+What a preset stores
+  The sound: engine, variant, Swarm, Tail, Span, Scatter, Bend,
+  Dusk, Haze, Haze mode, Mix (user presets also store engine B).
+  Not stored: In / Out gain, Auto Gain, Hold, and the looper - so
+  switching presets never stops your loop or changes your levels.
+
+Saving
+  Save / Save as writes an .xml file to
+    %APPDATA%\grainsexuell\Presets
+  (Win + R, paste that path, Enter, to open the folder.)
+  You can copy these files to another computer, or share them -
+  the same files work on Mac and Windows.
+
+Extra presets
+  The Windows installer adds 40 more presets to the folder above
+  (Full install, or tick "40 extra presets"); they appear under User.
+
+Your project in the DAW also saves the full plugin state, including
+the window size and MIDI mappings.
+
+
+---------------------------------------------------------------------
+13. MIDI CONTROL
+---------------------------------------------------------------------
+Every control can be played from a MIDI controller (CC messages).
+
+  1. Route your controller's MIDI to the track / plugin.
+     (In some DAWs you must enable MIDI input for the effect, or put
+     it on a track that receives MIDI.)
+  2. Right-click a control > MIDI learn.
+  3. Move a knob, fader or button on your controller. Done.
+  4. To remove: right-click > clear.
+
+Mappings are saved with your project. Useful mappings: Hold and the
+looper mode on footswitches, Swarm and Tail on knobs, Mix on an
+expression pedal.
+
+
+---------------------------------------------------------------------
+14. TEMPO
+---------------------------------------------------------------------
+Shard, Tap, Hold and looper Quantize/Burst follow the tempo:
+  - in a DAW: the project tempo,
+  - in the standalone: fixed 120 BPM.
+Mosaic and Cloud are not tied to tempo.
+
+
+---------------------------------------------------------------------
+15. TIPS AND STARTING POINTS
+---------------------------------------------------------------------
+  - Start with Mix around 50% and Scatter at 0, then add Scatter
+    slowly; it is the "make it alive" control.
+  - Bright, harsh results: lower Dusk to 4-6 kHz.
+  - Ambient pad: Cloud A Mist, Swarm high, Tail 60%, Span long,
+    Haze 70% in Swell, Hold on a chord.
+  - Octave shimmer: Mosaic C High, then Haze in Hall.
+  - Rhythmic glitch on drums: Shard A Shuffle, Swarm on 1/16,
+    Scatter 30%.
+  - Dub delay: Tap B Ping-pong, Tail 70%, Dusk around 3 kHz,
+    Bend a little for tape wobble.
+  - Serial combo: A = Tap A Echo, B = Cloud A Mist, Mix B 60%:
+    echoes that turn into clouds.
+  - Use as a send effect with Mix at 100% to keep the dry signal
+    untouched.
+  - Watch GRAIN ACTIVITY: if the bars are flat, nothing is
+    triggering - play louder or raise IN.
+
+
+---------------------------------------------------------------------
+16. TROUBLESHOOTING
+---------------------------------------------------------------------
+The DAW does not list grainsexuell
+  Rescan plugins. Check that the VST3 folder exists:
+  C:\Program Files\Common Files\VST3\grainsexuell.vst3
+  and that the DAW scans that folder. grainsexuell is 64-bit only.
+
+Windows "protected your PC" / SmartScreen warning
+  The beta is not code-signed yet. More info > Run anyway.
+
+No sound in the standalone
+  Options: check the device, the input channels are enabled and the
+  output is the device you listen on. Mute or headphones if a
+  microphone feeds back.
+
+Too loud / clipping
+  Turn on Auto Gain, lower Tail, or lower OUT. Some presets and high
+  Tap feedback can go over 0 dBFS with Auto Gain off.
+
+Clicks or crackles
+  Raise the audio buffer size in the DAW or standalone Options.
+  Engine B adds CPU. If a click comes from the effect itself
+  (same spot each time), please report it with the settings.
+
+MIDI learn does nothing
+  Make sure MIDI reaches the plugin (see section 13).
+
+Nothing happens when I play
+  Mix at 0? Dusk fully down? Check GRAIN ACTIVITY and the IN level.
+
+Something sounds wrong after loading a preset
+  Presets turn engine B off and leave In/Out, Auto Gain, Hold and
+  the looper as they were - check those.
+
+
+---------------------------------------------------------------------
+17. REFERENCE: ALL PARAMETERS
+---------------------------------------------------------------------
+Name           Range                                   Default
+-------------  --------------------------------------  -----------
+Input Gain     -24 .. +24 dB                           0 dB
+Swarm          0 .. 100%                               50%
+Tail           0 .. 100%                               50%
+Span           0 .. 100%                               50%
+Scatter        0 .. 100%                               0%
+Bend           0 .. 100%                               0%
+Dusk           20 Hz .. 20 kHz                         20 kHz (off)
+Haze           0 .. 100%                               0%
+Haze Mode      Room / Plate / Hall / Swell             Plate
+Mix            0 .. 100%                               50%
+Family         Mosaic / Cloud / Shard / Tap            Mosaic
+Variant        A / B / C / D                           A
+Family B       Off / Mosaic / Cloud / Shard / Tap      Off
+Variant B      A / B / C / D                           A
+Mix B          0 .. 100%                               50%
+Routing B      Serial / Parallel                       Serial
+Output Gain    -24 .. +24 dB                           0 dB
+Auto Gain      off / on                                off
+Hold           off / on                                off
+Loop           Off / Record / Play / Overdub           Off
+Loop Speed     Half / Normal / Double                  Normal
+Loop Reverse   off / on                                off
+Loop Quantize  off / on                                off
+Loop Burst     off / on                                off
+Loop Undo      button                                  -
+Loop Position  Pre-FX / Post-FX                        Post-FX
+
+All of them can be automated in the DAW and mapped with MIDI learn.
+
+---------------------------------------------------------------------
+Feedback is very welcome: which preset or settings, what you played,
+what you heard, your DAW and sample rate.

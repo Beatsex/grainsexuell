@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<GrainPreset version="1" name="Rust Cassette">
+  <P id="swarm" value="0.45"/>
+  <P id="tail" value="0.2"/>
+  <P id="span" value="0.35"/>
+  <P id="scatter" value="0.1"/>
+  <P id="bend" value="0.1"/>
+  <P id="dusk" value="7000"/>
+  <P id="haze" value="0.1"/>
+  <P id="mix" value="0.5"/>
+  <P id="family" value="2"/>
+  <P id="variant" value="1"/>
+  <P id="hazemode" value="0"/>
+</GrainPreset>
