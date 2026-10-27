@@ -1,4 +1,5 @@
 #include "PluginEditor.h"
+#include "UpdateCheck.h"
 
 namespace
 {
@@ -29,10 +30,18 @@ const juce::StringArray variantNames[4] {
 
 // layout, in design pixels (1040 x 620): header, body (pink left column + right column of rows), footer
 constexpr float headerH = 44, footerH = 36, leftW = 560, cellH = 40, rowH = 36;
+constexpr float paramRowH = 33; // 12 parameter rows fill the 396 px from the header to the Haze modes
 constexpr float slotLabelW = 40;           // the "A" / "B" column on the pink panel
 constexpr float variantBW = 320;           // variant B cells, then the routing cells
 constexpr float loopGroups[] { 216, 360 }; // x offsets of the looper group boundaries (state | speed | position)
 constexpr float bodyTop = headerH, bodyBottom = 620 - footerH;
+
+// the update check runs once per session (message thread only); every editor opened later shows the result
+struct
+{
+    bool started = false;
+    juce::String tag;
+} latest;
 } // namespace
 
 PluginEditor::PluginEditor(PluginProcessor& p)
@@ -75,11 +84,11 @@ PluginEditor::PluginEditor(PluginProcessor& p)
     addTarget(routeB, ids::route2);
     addAndMakeVisible(activity);
 
-    // signal order: input trim, the macros, the effects, both mixes, output trim
+    // signal order: input trim, the macros, the effects, the engine mixes, the master mix, output trim
     const std::pair<const char*, const char*> rowList[] {
         { ids::ingain, "In" },   { ids::swarm, "Swarm" }, { ids::tail, "Tail" }, { ids::span, "Span" },
         { ids::scatter, "Scatter" }, { ids::bend, "Bend" }, { ids::dusk, "Dusk" }, { ids::haze, "Haze" },
-        { ids::mix, "Mix" },     { ids::mix2, "Mix B" },  { ids::outgain, "Out" }
+        { ids::mix, "Mix A" },   { ids::mix2, "Mix B" },  { ids::drywet, "Dry/Wet" }, { ids::outgain, "Out" }
     };
     int number = 1;
     for (const auto& [id, text] : rowList)
@@ -88,6 +97,11 @@ PluginEditor::PluginEditor(PluginProcessor& p)
         addAndMakeVisible(r);
         addTarget(*r, id);
         rowParams.push_back(indexOf(id));
+        // the engine mixes in a light tint of the A/B panel, the master Dry/Wet in its full pink
+        if (juce::String(id) == ids::mix || juce::String(id) == ids::mix2)
+            r->setFill(gui::palette::pink.withAlpha(0.35f));
+        else if (juce::String(id) == ids::drywet)
+            r->setFill(gui::palette::pink);
     }
 
     addAndMakeVisible(hazeMode);
@@ -124,6 +138,10 @@ PluginEditor::PluginEditor(PluginProcessor& p)
     }
     meter.setJustificationType(juce::Justification::centredRight);
     status.setText("RIGHT-CLICK ANY CONTROL TO ASSIGN A MIDI CC", juce::dontSendNotification);
+
+    addChildComponent(updateButton);
+    updateButton.setTitle("Update available");
+    updateButton.onClick = [] { juce::URL(update::releasesPage).launchInDefaultBrowser(); };
 
     addMouseListener(this, true);
 
@@ -235,6 +253,7 @@ void PluginEditor::resized()
     place(prevPreset, leftW + 312, 0, 44, headerH - 1);
     place(nextPreset, leftW + 356, 0, 44, headerH - 1);
     place(savePreset, leftW + 400, 0, 80, headerH - 1);
+    place(updateButton, 150, 0, 150, headerH - 1); // between the name and the maker text
 
     // left column on pink: slot A, slot B, the activity readout
     const float cellsW = leftW - 1 - slotLabelW;
@@ -246,10 +265,10 @@ void PluginEditor::resized()
     place(activity, 0, bodyTop + cellH * 4, leftW - 1, bodyBottom - bodyTop - cellH * 4);
     activity.setScale(s);
 
-    // right column: 11 parameter rows, then the switch rows
+    // right column: 12 parameter rows, then the switch rows
     for (int i = 0; i < rows.size(); ++i)
     {
-        place(*rows[i], leftW, bodyTop + rowH * static_cast<float>(i), designWidth - leftW, rowH);
+        place(*rows[i], leftW, bodyTop + paramRowH * static_cast<float>(i), designWidth - leftW, paramRowH);
         rows[i]->setScale(s);
     }
     place(hazeMode, leftW, 440, 480, rowH - 1);
@@ -273,8 +292,39 @@ void PluginEditor::resized()
         processor.editorWidth = getWidth();
 }
 
+void PluginEditor::showUpdate()
+{
+    const auto version = latest.tag.trimCharactersAtStart("vV");
+    updateButton.setButtonText("UPDATE " + version);
+    updateButton.setTooltip("grainsexuell " + version + " is out (you have " GRAIN_VERSION "). Click to open the download page.");
+    updateButton.setVisible(true);
+}
+
 void PluginEditor::timerCallback()
 {
+    // ask GitHub once, after the window is really on screen (tests and snapshots never are)
+    if (! latest.started && isShowing())
+    {
+        latest.started = true;
+        updatePool.addJob([safe = juce::Component::SafePointer<PluginEditor>(this)] {
+            const auto options = juce::URL::InputStreamOptions(juce::URL::ParameterHandling::inAddress)
+                                     .withConnectionTimeoutMs(4000)
+                                     .withExtraHeaders("User-Agent: grainsexuell\r\nAccept: application/vnd.github+json");
+            const auto stream = juce::URL(update::latestApi).createInputStream(options);
+            if (stream == nullptr)
+                return;
+            const auto tag = juce::JSON::parse(stream->readString())["tag_name"].toString();
+            if (update::isNewer(tag, GRAIN_VERSION))
+                juce::MessageManager::callAsync([safe, tag] {
+                    latest.tag = tag;
+                    if (auto* editor = safe.getComponent())
+                        editor->showUpdate();
+                });
+        });
+    }
+    if (latest.tag.isNotEmpty() && ! updateButton.isVisible())
+        showUpdate();
+
     activity.push(processor.activityTotal());
 
     auto& map = processor.midiMap;
@@ -341,10 +391,11 @@ void PluginEditor::stepPreset(int direction)
     for (int i = 0; i < presets::numFactory; ++i)
         names.add(presets::factory()[static_cast<size_t>(i)].name);
     const int numBuiltIn = names.size();
-    names.addArray(processor.presets.userPresetNames());
+    for (const auto& user : processor.presets.userPresetNames())
+        names.addIfNotAlreadyThere(user); // the 0.2.0 extras live on as user files with factory names
 
-    int at = names.indexOf(processor.presets.currentName());
-    at = at < 0 ? (direction > 0 ? 0 : names.size() - 1) : (at + direction + names.size()) % names.size();
+    // an empty or unknown name counts as Init, so the first click already lands on a preset
+    const int at = (std::max(0, names.indexOf(processor.presets.currentName())) + direction + names.size()) % names.size();
     if (at == 0)
         processor.presets.applyInit();
     else if (at < numBuiltIn)
@@ -357,17 +408,19 @@ void PluginEditor::showPresetMenu()
 {
     juce::PopupMenu menu, factoryMenu, userMenu, deleteMenu;
     menu.addItem(2, "Init (all sound controls to default)");
-    const char* families[] { "Mosaic", "Cloud", "Shard", "Tap" };
-    for (int f = 0; f < 4; ++f)
+    for (auto* category : presets::categories)
     {
         juce::PopupMenu sub;
-        for (int i = 0; i < 4; ++i)
-            sub.addItem(100 + f * 4 + i, presets::factory()[static_cast<size_t>(f * 4 + i)].name);
-        factoryMenu.addSubMenu(families[f], sub);
+        for (int i = 0; i < presets::numFactory; ++i)
+            if (const auto& p = presets::factory()[static_cast<size_t>(i)]; juce::String(p.category) == category)
+                sub.addItem(100 + i, p.name);
+        factoryMenu.addSubMenu(category, sub);
     }
     menu.addSubMenu("Factory", factoryMenu);
 
-    const auto users = processor.presets.userPresetNames();
+    auto users = processor.presets.userPresetNames();
+    for (const auto& p : presets::factory())
+        users.removeString(p.name); // the 0.2.0 extras imported as user files are built in now
     for (int i = 0; i < users.size(); ++i)
     {
         userMenu.addItem(1000 + i, users[i]);
@@ -380,7 +433,7 @@ void PluginEditor::showPresetMenu()
 
     menu.showMenuAsync(juce::PopupMenu::Options().withTargetComponent(presetName),
                        [this, users](int result) {
-                           if (result >= 100 && result < 116)
+                           if (result >= 100 && result < 100 + presets::numFactory)
                                processor.presets.applyFactory(result - 100);
                            else if (result >= 1000 && result < 1000 + users.size())
                                processor.presets.applyUser(users[result - 1000]);

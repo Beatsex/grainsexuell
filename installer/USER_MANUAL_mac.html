@@ -158,7 +158,7 @@ footer { margin-top: 80px; border-top: 1px solid var(--ink); padding-top: 12px; 
 <div class="frame">
 
 <aside class="panel">
-  <p class="brand">grainsexuell<small>User manual · beta <span class="mono">0.2.0</span> · macOS</small></p>
+  <p class="brand">grainsexuell<small>User manual · beta <span class="mono">0.3.0</span> · macOS</small></p>
   <nav id="nav">
     <a href="#s01"><span>01</span>What it is</a>
     <a href="#s02"><span>02</span>Getting started</a>
@@ -228,7 +228,7 @@ footer { margin-top: 80px; border-top: 1px solid var(--ink); padding-top: 12px; 
   <div class="rows">
     <div class="row"><span class="n">L</span><span class="k">Pink panel</span><p class="d">Engine A (engine + variant), Engine B (Off or an engine, variant, Serial/Parallel) and <b>Grain activity</b>: events per second — loop grabs, grains, slices, echo repeats — with the last seconds as bars. Flat bars mean nothing is triggering.</p></div>
     <div class="row"><span class="n">T</span><span class="k">Preset</span><p class="d">Click the name for the list, Save and Save as.</p></div>
-    <div class="row"><span class="n">R</span><span class="k">Right column</span><p class="d">Rows 01–11 (In … Out), Haze mode, Auto Gain and Hold switches, looper.</p></div>
+    <div class="row"><span class="n">R</span><span class="k">Right column</span><p class="d">Rows 01–12 (In … Out), Haze mode, Auto Gain and Hold switches, looper.</p></div>
   </div>
   <h3>Handling</h3>
   <ul>
@@ -248,11 +248,12 @@ footer { margin-top: 80px; border-top: 1px solid var(--ink); padding-top: 12px; 
     <li class="fx">Auto Gain <small>level in</small></li>
     <li class="fx">Hold <small>adds the frozen beat</small></li>
     <li class="opt">Looper <small>if Pre-FX</small></li>
-    <li class="fx">Engine A → Engine B <small>Serial, or A + B Parallel · Mix = dry/wet</small></li>
+    <li class="fx">Engine A → Engine B <small>Serial, or A + B Parallel · Mix A / Mix B = dry/wet</small></li>
     <li class="fx">Bend <small>pitch wobble</small></li>
     <li class="fx">Haze <small>reverb</small></li>
     <li class="fx">Dusk <small>low-pass</small></li>
     <li class="fx">Auto Gain <small>level out + ceiling</small></li>
+    <li class="fx">Dry/Wet <small>all of the above against the input after In gain</small></li>
     <li class="opt">Looper <small>if Post-FX · default</small></li>
     <li class="fx">Out gain</li>
     <li>Output</li>
@@ -260,7 +261,7 @@ footer { margin-top: 80px; border-top: 1px solid var(--ink); padding-top: 12px; 
   <ul>
     <li>In gain hits everything, so it works like a drive.</li>
     <li>Hold feeds the engines — frozen audio still gets chopped.</li>
-    <li>Bend, Haze and Dusk come after Mix, so they color the dry signal too.</li>
+    <li>Bend, Haze and Dusk come after Mix A / Mix B, so they color the dry signal too. Dry/Wet comes after them: at 0% you hear only your clean playing.</li>
     <li>Post-FX looper records what you hear (before Out). Pre-FX records your dry playing and the engines keep processing it, so the loop evolves.</li>
   </ul>
 </section>
@@ -361,11 +362,12 @@ footer { margin-top: 80px; border-top: 1px solid var(--ink); padding-top: 12px; 
     <div class="row"><span class="n">04</span><span class="k">Span</span><p class="d">Length: loop, grain, slice range or tap spacing.<small>50%</small></p></div>
     <div class="row"><span class="n">05</span><span class="k">Scatter</span><p class="d">Randomness in time, position and stereo. 0 = tight.<small>0%</small></p></div>
     <div class="row"><span class="n">06</span><span class="k">Bend</span><p class="d">Pitch wobble — vibrato, tape warble.<small>0% = off</small></p></div>
-    <div class="row"><span class="n">07</span><span class="k">Dusk</span><p class="d">Low-pass filter. Fully up = off. Lower to darken and tame high layers.<small>20 Hz … 20 kHz</small></p></div>
+    <div class="row"><span class="n">07</span><span class="k">Dusk</span><p class="d">Low-pass filter. Fully up = off. Lower to darken and tame high layers.<small>200 Hz … 20 kHz</small></p></div>
     <div class="row"><span class="n">08</span><span class="k">Haze</span><p class="d">Reverb amount; type set by Haze mode.<small>0% = off</small></p></div>
-    <div class="row"><span class="n">09</span><span class="k">Mix</span><p class="d">Dry/wet of the effect. 100% = effect only.<small>50%</small></p></div>
+    <div class="row"><span class="n">09</span><span class="k">Mix A</span><p class="d">Dry/wet of engine A. 100% = engine only; Bend, Haze and Dusk still follow.<small>50%</small></p></div>
     <div class="row"><span class="n">10</span><span class="k">Mix B</span><p class="d">Dry/wet of engine B, when B is on.<small>50%</small></p></div>
-    <div class="row"><span class="n">11</span><span class="k">Out</span><p class="d">Output gain, applied last. Not changed by presets.<small>−24 … +24 dB · 0</small></p></div>
+    <div class="row"><span class="n">11</span><span class="k">Dry/Wet</span><p class="d">Master dry/wet (the pink row): the whole effect, Bend, Haze and Dusk included, against your clean input. Not changed by presets.<small>100%</small></p></div>
+    <div class="row"><span class="n">12</span><span class="k">Out</span><p class="d">Output gain, applied last. Not changed by presets.<small>−24 … +24 dB · 0</small></p></div>
   </div>
   <p>Double-click any row to reset it.</p>
 </section>
@@ -425,19 +427,14 @@ footer { margin-top: 80px; border-top: 1px solid var(--ink); padding-top: 12px; 
 <section id="s12">
   <div class="head"><span class="num">12</span><h2>Presets</h2></div>
   <p>Click the preset name to open the list. <b>Init</b> sets everything to default and turns engine B off.</p>
-  <h3>Factory — 16, four per engine</h3>
-  <div class="presets">
-    <div><span class="label">Mosaic</span><ul><li>Tide Ladder</li><li>Cellar Door</li><li>Paper Stars</li><li>Falling Stairs</li></ul></div>
-    <div><span class="label">Cloud</span><ul><li>Soft Mist</li><li>Glass Weather</li><li>Peat Smoke</li><li>Backwash Hymn</li></ul></div>
-    <div><span class="label">Shard</span><ul><li>Loose Tiles</li><li>Bit Rain</li><li>Pulse Garden</li><li>Skipping Stone</li></ul></div>
-    <div><span class="label">Tap</span><ul><li>Copper Echo</li><li>Ping Lantern</li><li>Rewind Attic</li><li>Lantern Fall</li></ul></div>
-  </div>
+  <h3>Factory — 56, in six categories</h3>
+  <p>Ambient, Shimmer, Rhythmic, Echo, Lo-Fi and Drift. <b>&lt;</b> and <b>&gt;</b> step through Init, all factory presets and then yours.</p>
   <h3>What a preset stores</h3>
-  <p><b>Stored:</b> engine, variant, Swarm, Tail, Span, Scatter, Bend, Dusk, Haze, Haze mode, Mix — user presets also store engine B.<br>
-     <b>Not stored:</b> In/Out gain, Auto Gain, Hold and the looper. Switching presets never stops your loop or changes your levels.</p>
+  <p><b>Stored:</b> engine, variant, Swarm, Tail, Span, Scatter, Bend, Dusk, Haze, Haze mode, Mix A — user presets also store engine B.<br>
+     <b>Not stored:</b> In/Out gain, Dry/Wet, Auto Gain, Hold and the looper. Switching presets never stops your loop or changes your levels.</p>
   <h3>Saving and sharing</h3>
   <p>Save writes an <code>.xml</code> file to <code>~/Library/grainsexuell/Presets</code> (Finder › Go › Go to Folder…, paste, Return). The same files work on Mac and Windows.</p>
-  <p>The download has 40 more presets in its <b>Presets</b> folder. Drag the <code>.xml</code> files into the folder above — they appear under <b>User</b>. If Finder says the folder does not exist, save any preset once in grainsexuell first. Your DAW project saves the full plugin state, including window size and MIDI mappings.</p>
+  <p>The 40 extra presets of 0.2.0 are built in now; imported copies in that folder are hidden from the menu. Your DAW project saves the full plugin state, including window size and MIDI mappings.</p>
 </section>
 
 <section id="s13">
@@ -448,7 +445,7 @@ footer { margin-top: 80px; border-top: 1px solid var(--ink); padding-top: 12px; 
     <li>Move a knob, fader or button on the controller. Done.</li>
     <li>To remove: right-click › clear.</li>
   </ol>
-  <p>Every control can be mapped; mappings save with the project. Try Hold and looper mode on footswitches, Swarm and Tail on knobs, Mix on an expression pedal.</p>
+  <p>Every control can be mapped; mappings save with the project. Try Hold and looper mode on footswitches, Swarm and Tail on knobs, Dry/Wet on an expression pedal.</p>
 </section>
 
 <section id="s14">
@@ -465,10 +462,10 @@ footer { margin-top: 80px; border-top: 1px solid var(--ink); padding-top: 12px; 
     <tr><td>Drum glitch</td><td>Shard A Shuffle · Swarm 1/16 · Scatter 30%</td></tr>
     <tr><td>Dub delay</td><td>Tap B Ping-pong · Tail 70% · Dusk ~3 kHz · a little Bend</td></tr>
     <tr><td>Echoes to clouds</td><td>A Tap A Echo · B Cloud A Mist · Serial · Mix B 60%</td></tr>
-    <tr><td>Send effect</td><td>Mix 100% on an aux/return track</td></tr>
+    <tr><td>Send effect</td><td>Dry/Wet and Mix A 100% on an aux/return track</td></tr>
   </table>
   <ul>
-    <li>Start with Mix around 50% and Scatter at 0, then add Scatter slowly — it's the "make it alive" control.</li>
+    <li>Start with Mix A around 50% and Scatter at 0, then add Scatter slowly — it's the "make it alive" control.</li>
     <li>Harsh highs: lower Dusk to 4–6 kHz.</li>
     <li>Flat activity bars: play louder or raise In.</li>
   </ul>
@@ -492,7 +489,7 @@ footer { margin-top: 80px; border-top: 1px solid var(--ink); padding-top: 12px; 
     <dt>MIDI learn does nothing</dt>
     <dd>Make sure MIDI reaches the plugin (section 13).</dd>
     <dt>Nothing happens when I play</dt>
-    <dd>Mix at 0? Dusk fully down? Check Grain activity and the In level.</dd>
+    <dd>Mix A or Dry/Wet at 0? Dusk fully down? Check Grain activity and the In level.</dd>
     <dt>A preset sounds wrong</dt>
     <dd>Presets turn B off and leave In/Out, Auto Gain, Hold and the looper as they were — check those.</dd>
   </dl>
@@ -508,16 +505,17 @@ footer { margin-top: 80px; border-top: 1px solid var(--ink); padding-top: 12px; 
     <tr><td>Span</td><td class="v">0 … 100%</td><td class="v">50%</td></tr>
     <tr><td>Scatter</td><td class="v">0 … 100%</td><td class="v">0%</td></tr>
     <tr><td>Bend</td><td class="v">0 … 100%</td><td class="v">0%</td></tr>
-    <tr><td>Dusk</td><td class="v">20 Hz … 20 kHz</td><td class="v">20 kHz (off)</td></tr>
+    <tr><td>Dusk</td><td class="v">200 Hz … 20 kHz</td><td class="v">20 kHz (off)</td></tr>
     <tr><td>Haze</td><td class="v">0 … 100%</td><td class="v">0%</td></tr>
     <tr><td>Haze Mode</td><td>Room · Plate · Hall · Swell</td><td>Plate</td></tr>
-    <tr><td>Mix</td><td class="v">0 … 100%</td><td class="v">50%</td></tr>
+    <tr><td>Mix A</td><td class="v">0 … 100%</td><td class="v">50%</td></tr>
     <tr><td>Family</td><td>Mosaic · Cloud · Shard · Tap</td><td>Mosaic</td></tr>
     <tr><td>Variant</td><td>A · B · C · D</td><td>A</td></tr>
     <tr><td>Family B</td><td>Off · Mosaic · Cloud · Shard · Tap</td><td>Off</td></tr>
     <tr><td>Variant B</td><td>A · B · C · D</td><td>A</td></tr>
     <tr><td>Mix B</td><td class="v">0 … 100%</td><td class="v">50%</td></tr>
     <tr><td>Routing B</td><td>Serial · Parallel</td><td>Serial</td></tr>
+    <tr><td>Dry/Wet</td><td class="v">0 … 100%</td><td class="v">100%</td></tr>
     <tr><td>Output Gain</td><td class="v">−24 … +24 dB</td><td class="v">0 dB</td></tr>
     <tr><td>Auto Gain</td><td>off · on</td><td>off</td></tr>
     <tr><td>Hold</td><td>off · on</td><td>off</td></tr>

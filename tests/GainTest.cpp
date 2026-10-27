@@ -153,3 +153,50 @@ TEST_CASE("states saved before the gains existed load them at 0 dB")
     REQUIRE(b.apvts.getRawParameterValue(grain::ids::ingain)->load() == 0.0f);
     REQUIRE(b.apvts.getRawParameterValue(grain::ids::outgain)->load() == 0.0f);
 }
+
+TEST_CASE("master Dry/Wet: 0 % is the input after In gain, 100 % is the effect untouched")
+{
+    const auto render = [](float drywet) {
+        PluginProcessor p;
+        prepare(p);
+        p.presets.applyFactory(5); // a wet, reverby preset: the effect is clearly not the input
+        setDb(p, grain::ids::ingain, -6.0f);
+        auto* prm = p.apvts.getParameter(grain::ids::drywet);
+        prm->setValueNotifyingHost(prm->convertTo0to1(drywet));
+        juce::AudioBuffer<float> buffer(2, 256);
+        juce::MidiBuffer midi;
+        std::vector<float> in, out;
+        const auto x = sine(256 * 200);
+        for (int b = 0; b < 200; ++b)
+        {
+            for (int c = 0; c < 2; ++c)
+                for (int i = 0; i < 256; ++i)
+                    buffer.setSample(c, i, x[static_cast<size_t>(b * 256 + i)]);
+            p.processBlock(buffer, midi);
+            for (int i = 0; i < 256; ++i)
+            {
+                in.push_back(x[static_cast<size_t>(b * 256 + i)]);
+                out.push_back(buffer.getSample(0, i));
+            }
+        }
+        return std::pair { in, out };
+    };
+
+    const auto [in, dry] = render(0.0f);
+    const float trim = std::pow(10.0f, -6.0f / 20.0f);
+    for (size_t i = 256 * 20; i < dry.size(); ++i) // after the 20 ms ramps
+        REQUIRE(dry[i] == Catch::Approx(in[i] * trim).margin(1e-5));
+
+    // 100 % (the default) equals a processor that never touched the control
+    PluginProcessor plain;
+    REQUIRE(plain.apvts.getRawParameterValue(grain::ids::drywet)->load() == 1.0f);
+    const auto [in2, wet] = render(1.0f);
+    double diff = 0;
+    for (size_t i = 256 * 20; i < wet.size(); ++i)
+        diff += std::abs(wet[i] - dry[i]);
+    REQUIRE(diff > 1.0); // the effect really is different from the dry signal
+
+    const auto [in3, half] = render(0.5f);
+    for (size_t i = 256 * 20; i < half.size(); ++i) // equal power: both sides at cos(45 deg)
+        REQUIRE(half[i] == Catch::Approx(0.70710678f * (wet[i] + dry[i])).margin(1e-4));
+}

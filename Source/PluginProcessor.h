@@ -6,6 +6,7 @@
 #include "dsp/AutoGain.h"
 #include "dsp/DualEngine.h"
 #include "dsp/Gain.h"
+#include "dsp/DryWet.h"
 #include "dsp/Hold.h"
 #include "dsp/Looper.h"
 #include "dsp/Lowpass.h"
@@ -110,11 +111,13 @@ private:
     std::atomic<float>* variant2Param;
     std::atomic<float>* mix2Param;
     std::atomic<float>* route2Param;
+    std::atomic<float>* drywetParam;
 
     grain::dsp::DualEngine::Params engineParams(double bpm) const;
 
     // auto gain wraps the chain; chain = effect engine (Mosaic, Cloud; other families later) -> pitch modulation -> reverb -> low-pass
     grain::dsp::Gain inGain, outGain; // first and last stage
+    grain::dsp::DryWet dryWet;
     grain::dsp::AutoGain autoGain;
     grain::dsp::Hold hold;
     grain::dsp::Looper looper;

@@ -33,6 +33,7 @@ private:
     void stepPreset(int direction);
     void askAndSavePreset();
     void updateVariantLabels();
+    void showUpdate();
 
     PluginProcessor& processor;
     grain::gui::GrainLookAndFeel look;
@@ -47,6 +48,8 @@ private:
     juce::ParameterAttachment familyWatcher, familyBWatcher;
     juce::OwnedArray<juce::ButtonParameterAttachment> toggleAttachments;
     juce::Label status, meter;
+    juce::TextButton updateButton; // hidden until GitHub has a newer release
+    juce::ThreadPool updatePool { 1 }; // the one update request; destroyed first, it waits for the request on close
 
     std::vector<Target> targets;
     std::vector<int> rowParams; // index in ids::mappable of each row

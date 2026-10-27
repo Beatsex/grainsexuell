@@ -32,7 +32,8 @@ PluginProcessor::PluginProcessor()
       family2Param(apvts.getRawParameterValue(grain::ids::family2)),
       variant2Param(apvts.getRawParameterValue(grain::ids::variant2)),
       mix2Param(apvts.getRawParameterValue(grain::ids::mix2)),
-      route2Param(apvts.getRawParameterValue(grain::ids::route2))
+      route2Param(apvts.getRawParameterValue(grain::ids::route2)),
+      drywetParam(apvts.getRawParameterValue(grain::ids::drywet))
 {
     for (size_t i = 0; i < mappedParams.size(); ++i)
     {
@@ -52,10 +53,11 @@ void PluginProcessor::applyPendingMidi()
             mappedParams[i]->setValueNotifyingHost(v);
 }
 
-void PluginProcessor::prepareToPlay(double sampleRate, int)
+void PluginProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 {
     inGain.prepare(sampleRate);
     outGain.prepare(sampleRate);
+    dryWet.prepare(sampleRate, samplesPerBlock);
     autoGain.prepare(sampleRate);
     hold.prepare(sampleRate);
     looper.prepare(sampleRate); // 60 s stereo base + overdub layer
@@ -108,6 +110,7 @@ void PluginProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiB
             ch[c][i] = std::isfinite(ch[c][i]) ? std::clamp(ch[c][i], -1.0e4f, 1.0e4f) : 0.0f;
 
     inGain.process(ch, numCh, n, ingainParam->load()); // first stage: also drives Auto Gain's measurement
+    dryWet.capture(ch, numCh, n); // the dry side of the master Dry/Wet: the input after In gain
 
     double bpm = 120.0; // no host tempo (standalone): fixed fallback
     if (auto* head = getPlayHead())
@@ -134,6 +137,7 @@ void PluginProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiB
     reverb.process(ch, numCh, n, hazeParam->load(), static_cast<int>(hazeModeParam->load() + 0.5f));
     lowpass.process(ch, numCh, n, duskParam->load());
     autoGain.end(ch, numCh, n);
+    dryWet.blend(ch, numCh, n, drywetParam->load()); // before the Post-FX looper, so it records what you hear
     if (! loopPre)
         looper.process(ch, numCh, n, loopParams); // records and plays the finished output
     outGain.process(ch, numCh, n, outgainParam->load()); // last stage (the looper has recorded before it)

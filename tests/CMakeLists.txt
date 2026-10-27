@@ -10,6 +10,7 @@ add_executable(grain_tests
     HoldTest.cpp
     LooperTest.cpp
     PresetTest.cpp
+    UpdateCheckTest.cpp
     MidiTest.cpp
     GainTest.cpp
     RoutingTest.cpp

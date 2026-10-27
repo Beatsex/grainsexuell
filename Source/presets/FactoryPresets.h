@@ -14,12 +14,16 @@ inline constexpr std::array<const char*, 11> soundIds { "swarm", "tail", "span",
 // user file saved before slot B existed, turns B off (its parameter defaults).
 inline constexpr std::array<const char*, 4> slotBIds { "family2", "variant2", "mix2", "route2" };
 
+// the preset menu's submenus, in this order
+inline constexpr std::array<const char*, 6> categories { "Ambient", "Shimmer", "Rhythmic", "Echo", "Lo-Fi", "Drift" };
+
 struct Preset
 {
     const char* name;
+    const char* category; // one of `categories`
     std::array<float, 11> values; // in soundIds order
 };
 
-inline constexpr int numFactory = 16;
+inline constexpr int numFactory = 56;
 const std::array<Preset, numFactory>& factory();
 } // namespace grain::presets

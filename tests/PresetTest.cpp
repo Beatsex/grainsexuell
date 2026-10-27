@@ -2,6 +2,7 @@
 
 #include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
+#include <algorithm>
 
 #include <cmath>
 #include <numbers>
@@ -55,7 +56,7 @@ const char* const transportIds[] { "loop", "loopspeed", "loopreverse", "loopquan
 TEST_CASE("presets: the factory table is valid")
 {
     const auto& table = grain::presets::factory();
-    REQUIRE(table.size() == 16);
+    REQUIRE(table.size() == grain::presets::numFactory);
     std::set<std::string> names;
     PluginProcessor p;
     for (const auto& preset : table)
@@ -64,6 +65,8 @@ TEST_CASE("presets: the factory table is valid")
         REQUIRE(std::string(preset.name).size() > 0);
         REQUIRE(names.insert(preset.name).second);
         REQUIRE(PresetManager::sanitiseName(preset.name) == preset.name); // usable as a user preset name too
+        REQUIRE(std::find_if(grain::presets::categories.begin(), grain::presets::categories.end(),
+                             [&](const char* c) { return std::string(c) == preset.category; }) != grain::presets::categories.end());
 
         for (size_t i = 0; i < grain::presets::soundIds.size(); ++i)
         {
@@ -93,7 +96,7 @@ TEST_CASE("presets: applying one sets the sound controls and leaves the transpor
     for (size_t i = 0; i < std::size(transportIds); ++i)
         before[i] = plain(p, transportIds[i]);
 
-    for (int n = 0; n < 16; ++n)
+    for (int n = 0; n < grain::presets::numFactory; ++n)
     {
         p.setCurrentProgram(n);
         const auto& preset = grain::presets::factory()[static_cast<size_t>(n)];
@@ -110,7 +113,7 @@ TEST_CASE("presets: applying one sets the sound controls and leaves the transpor
 TEST_CASE("presets: every factory preset renders finite, bounded and audibly wet")
 {
     const double sr = 48000.0;
-    for (int n = 0; n < 16; ++n)
+    for (int n = 0; n < grain::presets::numFactory; ++n)
     {
         PluginProcessor p;
         configure(p, sr, 512);
@@ -285,12 +288,12 @@ TEST_CASE("presets: corrupt, hostile or out-of-range files are handled safely")
 TEST_CASE("presets: program list, state round trip with the preset name, and states from before presets")
 {
     PluginProcessor a, b, old;
-    REQUIRE(a.getNumPrograms() == 16);
+    REQUIRE(a.getNumPrograms() == grain::presets::numFactory);
     REQUIRE(a.getProgramName(4) == "Soft Mist");
     REQUIRE(a.getProgramName(-1).isEmpty());
-    REQUIRE(a.getProgramName(16).isEmpty());
+    REQUIRE(a.getProgramName(grain::presets::numFactory).isEmpty());
     std::set<std::string> names;
-    for (int i = 0; i < 16; ++i)
+    for (int i = 0; i < grain::presets::numFactory; ++i)
         REQUIRE(names.insert(a.getProgramName(i).toStdString()).second);
 
     a.setCurrentProgram(4);
@@ -330,7 +333,7 @@ TEST_CASE("presets: applying presets from another thread while audio runs is saf
     configure(p, 48000.0, 256);
     std::thread other([&p] {
         for (int i = 0; i < 600; ++i)
-            p.setCurrentProgram(i % 16);
+            p.setCurrentProgram(i % grain::presets::numFactory);
     });
 
     std::mt19937 rng(5);

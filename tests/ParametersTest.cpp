@@ -69,7 +69,7 @@ TEST_CASE("parameter layout: 8 knobs + 3 selectors + auto gain and hold toggles,
         REQUIRE(trim->getNormalisableRange().end == 24.0f);
     }
 
-    REQUIRE(p.getParameters().size() == 26);
+    REQUIRE(p.getParameters().size() == 27);
 }
 
 TEST_CASE("loading a state saved before the hold parameter existed leaves Hold off")

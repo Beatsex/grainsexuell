@@ -235,9 +235,17 @@ public:
         resized();
     }
 
+    // a background that sets a row apart (the mixes); transparent = paper
+    void setFill(juce::Colour colour)
+    {
+        fill = colour;
+        repaint();
+    }
+
     void paint(juce::Graphics& g) override
     {
         auto area = getLocalBounds().toFloat();
+        g.fillAll(fill);
         g.setColour(palette::ink);
         g.fillRect(area.removeFromBottom(1.0f));
         area.removeFromLeft(16.0f * scale);
@@ -265,6 +273,7 @@ public:
 
 private:
     juce::String name, index, caption;
+    juce::Colour fill = juce::Colours::transparentBlack;
     float scale = 1.0f;
     juce::SliderParameterAttachment attachment;
 };

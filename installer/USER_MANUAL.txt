@@ -1,6 +1,6 @@
 =====================================================================
   grainsexuell  -  USER MANUAL
-  beta 0.2.0  -  by beatsexuell
+  beta 0.3.0  -  by beatsexuell
 =====================================================================
 
 CONTENTS
@@ -10,7 +10,7 @@ CONTENTS
   4. Signal flow
   5. The engines (Mosaic, Cloud, Shard, Tap)
   6. Engine B: serial and parallel
-  7. The sound controls (rows 01-11)
+  7. The sound controls (rows 01-12)
   8. Haze modes
   9. Auto Gain
  10. Hold
@@ -85,8 +85,8 @@ Top
   - Preset name: click it to open the preset list, Save, Save as.
 
 Right column
-  - Numbered rows 01-11: In, Swarm, Tail, Span, Scatter, Bend, Dusk,
-    Haze, Mix, Mix B, Out
+  - Numbered rows 01-12: In, Swarm, Tail, Span, Scatter, Bend, Dusk,
+    Haze, Mix A, Mix B, Dry/Wet, Out
   - Haze mode: Room / Plate / Hall / Swell
   - Switches: Auto Gain, Hold
   - Looper section
@@ -109,11 +109,12 @@ Handling
    -> Hold (adds the frozen beat to the live input)
    -> [Looper, if set to Pre-FX]
    -> Engine A  ->  Engine B (Serial)   or   A + B side by side (Parallel)
-      (Mix sets the engines' dry / wet here)
+      (Mix A and Mix B set the engines' dry / wet here)
    -> Bend (pitch wobble)
    -> Haze (reverb)
    -> Dusk (low-pass)
    -> Auto Gain (level out + safety ceiling)
+   -> Dry/Wet (blends all of the above with the input after In gain)
    -> [Looper, if set to Post-FX - the default]
    -> Out gain
    -> Output
@@ -121,8 +122,9 @@ Handling
 Things worth knowing from this:
   - In gain hits everything, so it works like a drive control.
   - Hold feeds the engines, so frozen audio still gets chopped.
-  - Bend, Haze and Dusk come after Mix, so they color the dry
-    signal too.
+  - Bend, Haze and Dusk come after Mix A / Mix B, so they color the
+    dry signal too. Dry/Wet comes after them: at 0% you hear only
+    your clean playing.
   - Post-FX looper records exactly what you hear (before Out gain).
   - Pre-FX looper records your dry playing; the engines then keep
     processing the loop, so it changes every pass.
@@ -211,7 +213,7 @@ Factory presets turn B off. Your own saved presets remember B.
 
 
 ---------------------------------------------------------------------
-7. THE SOUND CONTROLS (ROWS 01-11)
+7. THE SOUND CONTROLS (ROWS 01-12)
 ---------------------------------------------------------------------
 01 IN       Input gain, -24 to +24 dB (default 0). Turn down a hot
             signal; turn up to drive the engines harder. Presets do
@@ -225,13 +227,18 @@ Factory presets turn B off. Your own saved presets remember B.
 05 SCATTER  Randomness in time, position and stereo. 0 = tight and
             predictable. Default 0%.
 06 BEND     Pitch wobble (vibrato / tape warble), 0 = off.
-07 DUSK     Low-pass filter, 20 Hz - 20 kHz. Fully up = off.
+07 DUSK     Low-pass filter, 200 Hz - 20 kHz. Fully up = off.
             Lower it to darken and tame the high layers.
 08 HAZE     Reverb amount, 0 = off. Type set by the Haze mode.
-09 MIX      Dry / wet for the whole effect. Default 50%.
-            0 = dry only, 100% = effect only.
+09 MIX A    Dry / wet of engine A. Default 50%.
+            0 = dry only, 100% = engine only. Bend, Haze and Dusk
+            still follow it.
 10 MIX B    Dry / wet of engine B (only matters when B is on).
-11 OUT      Output gain, -24 to +24 dB (default 0). Applied last.
+11 DRY/WET  Master dry / wet (the pink row): the whole effect,
+            Bend, Haze and Dusk included, against your clean
+            input. Default 100% (the full effect). Presets do not
+            change it.
+12 OUT      Output gain, -24 to +24 dB (default 0). Applied last.
             Presets do not change it.
 
 Double-click any row to reset it.
@@ -319,21 +326,15 @@ Notes
 Click the preset name to open the list.
 
   Init       everything back to default, engine B off.
-  Factory    16 presets, 4 per engine:
-               Mosaic: Tide Ladder, Cellar Door, Paper Stars,
-                       Falling Stairs
-               Cloud:  Soft Mist, Glass Weather, Peat Smoke,
-                       Backwash Hymn
-               Shard:  Loose Tiles, Bit Rain, Pulse Garden,
-                       Skipping Stone
-               Tap:    Copper Echo, Ping Lantern, Rewind Attic,
-                       Lantern Fall
+  Factory    56 presets in six categories: Ambient, Shimmer,
+             Rhythmic, Echo, Lo-Fi, Drift. < and > step through
+             Init, all factory presets and then yours.
   User       your own presets.
 
 What a preset stores
   The sound: engine, variant, Swarm, Tail, Span, Scatter, Bend,
-  Dusk, Haze, Haze mode, Mix (user presets also store engine B).
-  Not stored: In / Out gain, Auto Gain, Hold, and the looper - so
+  Dusk, Haze, Haze mode, Mix A (user presets also store engine B).
+  Not stored: In / Out gain, Dry/Wet, Auto Gain, Hold, and the looper - so
   switching presets never stops your loop or changes your levels.
 
 Saving
@@ -343,9 +344,10 @@ Saving
   You can copy these files to another computer, or share them -
   the same files work on Mac and Windows.
 
-Extra presets
-  The Windows installer adds 40 more presets to the folder above
-  (Full install, or tick "40 extra presets"); they appear under User.
+Extra presets from 0.2.0
+  The 40 extra presets of 0.2.0 are built in as factory presets now.
+  If you imported them into the folder above, the menu hides those
+  copies; you can delete the files.
 
 Your project in the DAW also saves the full plugin state, including
 the window size and MIDI mappings.
@@ -364,8 +366,8 @@ Every control can be played from a MIDI controller (CC messages).
   4. To remove: right-click > clear.
 
 Mappings are saved with your project. Useful mappings: Hold and the
-looper mode on footswitches, Swarm and Tail on knobs, Mix on an
-expression pedal.
+looper mode on footswitches, Swarm and Tail on knobs, Dry/Wet on
+an expression pedal.
 
 
 ---------------------------------------------------------------------
@@ -380,7 +382,7 @@ Mosaic and Cloud are not tied to tempo.
 ---------------------------------------------------------------------
 15. TIPS AND STARTING POINTS
 ---------------------------------------------------------------------
-  - Start with Mix around 50% and Scatter at 0, then add Scatter
+  - Start with Mix A around 50% and Scatter at 0, then add Scatter
     slowly; it is the "make it alive" control.
   - Bright, harsh results: lower Dusk to 4-6 kHz.
   - Ambient pad: Cloud A Mist, Swarm high, Tail 60%, Span long,
@@ -392,8 +394,8 @@ Mosaic and Cloud are not tied to tempo.
     Bend a little for tape wobble.
   - Serial combo: A = Tap A Echo, B = Cloud A Mist, Mix B 60%:
     echoes that turn into clouds.
-  - Use as a send effect with Mix at 100% to keep the dry signal
-    untouched.
+  - Use as a send effect with Dry/Wet and Mix A at 100%, so the
+    dry signal stays on its own track.
   - Watch GRAIN ACTIVITY: if the bars are flat, nothing is
     triggering - play louder or raise IN.
 
@@ -427,7 +429,7 @@ MIDI learn does nothing
   Make sure MIDI reaches the plugin (see section 13).
 
 Nothing happens when I play
-  Mix at 0? Dusk fully down? Check GRAIN ACTIVITY and the IN level.
+  Mix A or Dry/Wet at 0? Dusk fully down? Check GRAIN ACTIVITY and the IN level.
 
 Something sounds wrong after loading a preset
   Presets turn engine B off and leave In/Out, Auto Gain, Hold and
@@ -445,16 +447,17 @@ Tail           0 .. 100%                               50%
 Span           0 .. 100%                               50%
 Scatter        0 .. 100%                               0%
 Bend           0 .. 100%                               0%
-Dusk           20 Hz .. 20 kHz                         20 kHz (off)
+Dusk           200 Hz .. 20 kHz                         20 kHz (off)
 Haze           0 .. 100%                               0%
 Haze Mode      Room / Plate / Hall / Swell             Plate
-Mix            0 .. 100%                               50%
+Mix A          0 .. 100%                               50%
 Family         Mosaic / Cloud / Shard / Tap            Mosaic
 Variant        A / B / C / D                           A
 Family B       Off / Mosaic / Cloud / Shard / Tap      Off
 Variant B      A / B / C / D                           A
 Mix B          0 .. 100%                               50%
 Routing B      Serial / Parallel                       Serial
+Dry/Wet        0 .. 100%                               100%
 Output Gain    -24 .. +24 dB                           0 dB
 Auto Gain      off / on                                off
 Hold           off / on                                off

@@ -26,7 +26,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
     add(ids::dusk, "Dusk", dusk, 20000.0f, "Hz");
 
     add(ids::haze, "Haze", unit, 0.0f);
-    add(ids::mix, "Mix", unit, 0.5f);
+    add(ids::mix, "Mix A", unit, 0.5f);
 
     layout.add(std::make_unique<juce::AudioParameterChoice>(
         juce::ParameterID { ids::family, 1 }, "Family", juce::StringArray { "Mosaic", "Cloud", "Shard", "Tap" }, 0));
@@ -60,6 +60,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
     add(ids::mix2, "Mix B", unit, 0.5f);
     layout.add(std::make_unique<juce::AudioParameterChoice>(
         juce::ParameterID { ids::route2, 1 }, "Routing B", juce::StringArray { "Serial", "Parallel" }, 0));
+    add(ids::drywet, "Dry/Wet", unit, 1.0f); // 100 %: the effect as before this control existed
 
     return layout;
 }

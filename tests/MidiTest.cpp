@@ -49,7 +49,7 @@ TEST_CASE("every parameter is mappable and ids are unique")
         for (size_t j = i + 1; j < grain::ids::mappable.size(); ++j)
             REQUIRE(juce::String(grain::ids::mappable[i]) != grain::ids::mappable[j]);
     }
-    REQUIRE(grain::ids::mappable.size() == 26);
+    REQUIRE(grain::ids::mappable.size() == 27);
     for (size_t i = 0; i < grain::ids::knobs.size(); ++i) // the editor relies on knobs being the first entries
         REQUIRE(juce::String(grain::ids::knobs[i]) == grain::ids::mappable[i]);
 }
@@ -322,4 +322,85 @@ TEST_CASE("editor snapshot while playing (only with GRAIN_SNAPSHOT_DIR)")
     out.setPosition(0);
     out.truncate();
     png.writeImageToStream(editor->createComponentSnapshot(editor->getLocalBounds()), out);
+}
+
+TEST_CASE("tutorial shots (only with GRAIN_TUTORIAL_DIR)")
+{
+    const auto dir = juce::SystemStats::getEnvironmentVariable("GRAIN_TUTORIAL_DIR", {});
+    if (dir.isEmpty())
+        return;
+    juce::ScopedJuceInitialiser_GUI gui;
+
+    // name, preset (-1 = Init), then plain values set on top of it
+    struct Shot
+    {
+        const char* name;
+        int preset;
+        std::vector<std::pair<const char*, float>> set;
+        int learn = -1; // index in ids::mappable to show MIDI learning
+    };
+    const std::vector<Shot> shots {
+        { "01_init", -1, {} },
+        { "02_hook_glass_weather", 5, {} },
+        { "03_mosaic_tide_ladder", 0, {} },
+        { "04_cloud_soft_mist", 4, {} },
+        { "05_shard_bit_rain", 9, {} },
+        { "06_tap_copper_echo", 12, {} },
+        { "07_macros", 4, { { grain::ids::swarm, 0.9f }, { grain::ids::tail, 0.7f }, { grain::ids::scatter, 0.6f }, { grain::ids::bend, 0.3f } } },
+        { "08_dusk_haze", 6, {} },
+        { "09_b_serial", 4, { { grain::ids::family2, 4.0f }, { grain::ids::variant2, 0.0f }, { grain::ids::mix2, 0.5f }, { grain::ids::route2, 0.0f } } },
+        { "10_b_parallel", 4, { { grain::ids::family2, 3.0f }, { grain::ids::variant2, 3.0f }, { grain::ids::mix2, 0.5f }, { grain::ids::route2, 1.0f } } },
+        { "11_hold", 0, { { grain::ids::hold, 1.0f } } },
+        { "12_loop_rec", 4, { { grain::ids::loop, 1.0f } } },
+        { "13_loop_dub_reverse", 4, { { grain::ids::loop, 3.0f }, { grain::ids::loopreverse, 1.0f }, { grain::ids::loopspeed, 2.0f } } },
+        { "14_presets_halo_static", 27, {} },
+        { "15_midi_learn", 4, {}, 0 },
+        { "16_autogain", 4, { { grain::ids::autogain, 1.0f } } },
+        { "17_drywet", 4, { { grain::ids::drywet, 0.35f } } },
+    };
+
+    for (const auto& shot : shots)
+    {
+        PluginProcessor p;
+        prepare(p);
+        if (shot.preset < 0)
+            p.presets.applyInit();
+        else
+            p.presets.applyFactory(shot.preset);
+        for (const auto& [id, plain] : shot.set)
+        {
+            auto* prm = p.apvts.getParameter(id);
+            prm->setValueNotifyingHost(prm->convertTo0to1(plain));
+        }
+        if (shot.learn >= 0)
+            p.midiMap.startLearn(shot.learn);
+
+        auto* editor = dynamic_cast<PluginEditor*>(p.createEditor());
+        REQUIRE(editor != nullptr);
+        std::unique_ptr<juce::AudioProcessorEditor> owner(editor);
+        editor->setSize(2080, 1240);
+
+        juce::AudioBuffer<float> buffer(2, 256);
+        juce::MidiBuffer midi;
+        juce::Random rng(7);
+        for (int block = 0; block < 48000 * 4 / 256; ++block) // 4 s of plucky noise bursts
+        {
+            for (int i = 0; i < 256; ++i)
+            {
+                const int t = (block * 256 + i) % 12000;
+                const float env = std::exp(-static_cast<float>(t) / 1500.0f);
+                buffer.setSample(0, i, 0.4f * env * (2.0f * rng.nextFloat() - 1.0f));
+                buffer.setSample(1, i, buffer.getSample(0, i));
+            }
+            p.processBlock(buffer, midi);
+            if (block % 12 == 0)
+                editor->refresh();
+        }
+        juce::PNGImageFormat png;
+        juce::FileOutputStream out(juce::File(dir).getChildFile(juce::String(shot.name) + ".png"));
+        REQUIRE(out.openedOk());
+        out.setPosition(0);
+        out.truncate();
+        png.writeImageToStream(editor->createComponentSnapshot(editor->getLocalBounds()), out);
+    }
 }
