@@ -95,6 +95,29 @@ jobs:
             done
             lipo -info "$OUT/grainsexuell.vst3/Contents/MacOS/grainsexuell"
             ditto -c -k --keepParent "$OUT" "$OUT.zip"
+            # installer: one component per format, so "Customize" can leave one out; files a .pkg lays down are
+            # not quarantined, so no xattr step (the unsigned .pkg itself still needs right-click > Open)
+            for c in "vst3:grainsexuell.vst3:/Library/Audio/Plug-Ins/VST3" "au:grainsexuell.component:/Library/Audio/Plug-Ins/Components" "app:grainsexuell.app:/Applications"; do
+              IFS=: read -r id bundle dest <<< "$c"
+              mkdir -p "pkgroot/$id" && cp -R "$OUT/$bundle" "pkgroot/$id/"
+              pkgbuild --root "pkgroot/$id" --install-location "$dest" --identifier "com.beatsexuell.grainsexuell.$id" \
+                --version "$VERSION" "pkg-$id.pkg"
+            done
+            cat > distribution.xml <<EOF
+          <?xml version="1.0" encoding="utf-8"?>
+          <installer-gui-script minSpecVersion="2">
+            <title>grainsexuell ${VERSION} beta</title>
+            <options customize="allow" require-scripts="false" hostArchitectures="x86_64,arm64"/>
+            <choices-outline><line choice="vst3"/><line choice="au"/><line choice="app"/></choices-outline>
+            <choice id="vst3" title="VST3 plugin"><pkg-ref id="com.beatsexuell.grainsexuell.vst3"/></choice>
+            <choice id="au" title="Audio Unit (Logic, GarageBand)"><pkg-ref id="com.beatsexuell.grainsexuell.au"/></choice>
+            <choice id="app" title="Standalone app"><pkg-ref id="com.beatsexuell.grainsexuell.app"/></choice>
+            <pkg-ref id="com.beatsexuell.grainsexuell.vst3">pkg-vst3.pkg</pkg-ref>
+            <pkg-ref id="com.beatsexuell.grainsexuell.au">pkg-au.pkg</pkg-ref>
+            <pkg-ref id="com.beatsexuell.grainsexuell.app">pkg-app.pkg</pkg-ref>
+          </installer-gui-script>
+          EOF
+            productbuild --distribution distribution.xml --package-path . "grainsexuell-beta-${VERSION}-mac-installer.pkg"
           elif [ "$RUNNER_OS" = "Linux" ]; then
             cp -R "$A/LV2/grainsexuell.lv2" "$OUT/"
             cp "$A/Standalone/grainsexuell" "$OUT/"
@@ -115,4 +138,5 @@ jobs:
           path: |
             ${{ env.PACKAGE }}.zip
             *-setup.exe
+            *-mac-installer.pkg
           if-no-files-found: error
