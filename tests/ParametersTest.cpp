@@ -64,7 +64,7 @@ TEST_CASE("parameter layout: 8 knobs + 3 selectors + auto gain and hold toggles,
         auto* trim = dynamic_cast<juce::AudioParameterFloat*>(p.apvts.getParameter(id));
         INFO(id);
         REQUIRE(trim != nullptr);
-        REQUIRE(trim->get() == 0.0f); // 0 dB keeps the output bit-exact
+        REQUIRE(trim->get() == Catch::Approx(0.0f).margin(1e-5)); // the 0.1 dB grid can miss 0 by 3.6e-7 (macOS); Gain treats it as 0 dB
         REQUIRE(trim->getNormalisableRange().start == -24.0f);
         REQUIRE(trim->getNormalisableRange().end == 24.0f);
     }

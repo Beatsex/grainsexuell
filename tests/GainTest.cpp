@@ -150,8 +150,8 @@ TEST_CASE("states saved before the gains existed load them at 0 dB")
     juce::AudioProcessor::copyXmlToBinary(*xml, old);
     b.setStateInformation(old.getData(), static_cast<int>(old.getSize()));
 
-    REQUIRE(b.apvts.getRawParameterValue(grain::ids::ingain)->load() == 0.0f);
-    REQUIRE(b.apvts.getRawParameterValue(grain::ids::outgain)->load() == 0.0f);
+    REQUIRE(b.apvts.getRawParameterValue(grain::ids::ingain)->load() == Catch::Approx(0.0f).margin(1e-5));
+    REQUIRE(b.apvts.getRawParameterValue(grain::ids::outgain)->load() == Catch::Approx(0.0f).margin(1e-5));
 }
 
 TEST_CASE("master Dry/Wet: 0 % is the input after In gain, 100 % is the effect untouched")
@@ -199,4 +199,11 @@ TEST_CASE("master Dry/Wet: 0 % is the input after In gain, 100 % is the effect u
     const auto [in3, half] = render(0.5f);
     for (size_t i = 256 * 20; i < half.size(); ++i) // equal power: both sides at cos(45 deg)
         REQUIRE(half[i] == Catch::Approx(0.70710678f * (wet[i] + dry[i])).margin(1e-4));
+}
+
+TEST_CASE("gain: a trim a hair off 0 dB (the 0.1 dB grid on macOS) stays bit-exact")
+{
+    const auto x = sine(4096);
+    REQUIRE(run(x, 256, 3.58e-7f) == x);
+    REQUIRE(run(x, 256, -3.58e-7f) == x);
 }
