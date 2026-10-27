@@ -8,7 +8,7 @@ VST3 on Windows, macOS and Linux, AU on macOS, LV2 on Linux, plus a standalone a
 > It listens to what you just played, and remembers it wrong.
 
 
-▶ <iframe width="560" height="315" src="https://www.youtube.com/embed/63asHO567NA?si=LaETjWrIzoztJWce" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+<iframe width="560" height="315" src="https://www.youtube.com/embed/63asHO567NA?si=GSh5qaGAQxXkCXT-" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
 
 ## Features
 
