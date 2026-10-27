@@ -7,6 +7,10 @@ Windows・macOS・Linux 用 VST3、macOS 用 AU、Linux 用 LV2、スタンド�
 
 > いま弾いたフレーズを聴いて、少しだけ間違えて思い出す。
 
+[![grainsexuell tutorial](docs/tutorial.jpg)](https://youtu.be/63asHO567NA)
+
+▶ [チュートリアルを見る（3 分）](https://youtu.be/63asHO567NA)
+
 ## 機能
 
 - **4 種類のエンジン（各 4 バリエーション）**

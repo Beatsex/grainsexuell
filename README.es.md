@@ -7,6 +7,10 @@ VST3 para Windows, macOS y Linux, AU para macOS, LV2 para Linux, y una aplicaciÃ
 
 > Escucha lo que acabas de tocar y lo recuerda mal.
 
+[![grainsexuell tutorial](docs/tutorial.jpg)](https://youtu.be/63asHO567NA)
+
+â–¶ [Ver el tutorial (3 min)](https://youtu.be/63asHO567NA)
+
 ## Funciones
 
 - **Cuatro motores, cuatro variantes cada uno**

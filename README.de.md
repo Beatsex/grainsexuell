@@ -7,6 +7,10 @@ VST3 für Windows, macOS und Linux, AU für macOS, LV2 für Linux, dazu eine Sta
 
 > Er hört zu, was du gerade gespielt hast, und erinnert sich falsch daran.
 
+[![grainsexuell tutorial](docs/tutorial.jpg)](https://youtu.be/63asHO567NA)
+
+▶ [Tutorial ansehen (3 Min.)](https://youtu.be/63asHO567NA)
+
 ## Funktionen
 
 - **Vier Engines mit je vier Varianten**

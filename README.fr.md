@@ -7,6 +7,10 @@ VST3 pour Windows, macOS et Linux, AU pour macOS, LV2 pour Linux, ainsi qu'une a
 
 > Il écoute ce que tu viens de jouer, et s'en souvient de travers.
 
+[![grainsexuell tutorial](docs/tutorial.jpg)](https://youtu.be/63asHO567NA)
+
+▶ [Voir le tutoriel (3 min)](https://youtu.be/63asHO567NA)
+
 ## Fonctions
 
 - **Quatre moteurs, quatre variantes chacun**
