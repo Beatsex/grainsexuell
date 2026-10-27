@@ -4,6 +4,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <cmath>
+#include <vector>
 
 namespace
 {
@@ -55,6 +56,9 @@ TEST_CASE("mono in -> stereo out puts the signal on both channels")
     buffer.clear();
     for (int i = 0; i < blockSize; ++i)
         buffer.setSample(0, i, testSample(0, i));
+    // compare with a copy, not a recomputation: the compiler may contract testSample() into an FMA at one call site
+    // and not at another (Apple clang does), which changes the last bit
+    std::vector<float> input(buffer.getReadPointer(0), buffer.getReadPointer(0) + blockSize);
     buffer.setSample(1, 3, 123.0f); // stale garbage JUCE may leave in channel 1
 
     juce::MidiBuffer midi;
@@ -62,8 +66,8 @@ TEST_CASE("mono in -> stereo out puts the signal on both channels")
 
     for (int i = 0; i < blockSize; ++i)
     {
-        REQUIRE(buffer.getSample(0, i) == testSample(0, i));
-        REQUIRE(buffer.getSample(1, i) == testSample(0, i));
+        REQUIRE(buffer.getSample(0, i) == input[static_cast<size_t>(i)]);
+        REQUIRE(buffer.getSample(1, i) == input[static_cast<size_t>(i)]);
     }
 }
 
