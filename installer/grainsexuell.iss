@@ -41,10 +41,12 @@ Source: "{#Artefacts}\Standalone\grainsexuell.exe"; DestDir: "{app}"; Components
 Source: "README.txt"; DestDir: "{app}"; Flags: ignoreversion isreadme
 Source: "USER_MANUAL.txt"; DestDir: "{app}"; Flags: ignoreversion
 Source: "USER_MANUAL.html"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\docs\grainsexuell-tutorial.mp4"; DestName: "Tutorial.mp4"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{group}\grainsexuell"; Filename: "{app}\grainsexuell.exe"; Components: standalone
 Name: "{group}\grainsexuell User Manual"; Filename: "{app}\USER_MANUAL.html"
+Name: "{group}\grainsexuell Tutorial (video)"; Filename: "{app}\Tutorial.mp4"
 Name: "{group}\Uninstall grainsexuell"; Filename: "{uninstallexe}"
 
 [Run]

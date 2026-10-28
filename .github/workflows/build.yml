@@ -92,6 +92,9 @@ jobs:
           A=build/grainsexuell_artefacts/Release
           mkdir -p "$OUT"
           cp installer/README.txt "$OUT/"
+          cp docs/grainsexuell-tutorial.mp4 "$OUT/Tutorial.mp4"
+          if [ "$RUNNER_OS" = "macOS" ]; then manual=USER_MANUAL_mac.html; else manual=USER_MANUAL.html; fi
+          cp "installer/$manual" "$OUT/User Manual.html"
           cp -R "$A/VST3/grainsexuell.vst3" "$OUT/"
           if [ "$RUNNER_OS" = "macOS" ]; then
             cp -R "$A/AU/grainsexuell.component" "$OUT/"
@@ -121,6 +124,7 @@ jobs:
             cp installer/README.txt "$APPDIR/README.txt"
             cp installer/USER_MANUAL_mac.html "$APPDIR/User Manual.html"
             cp installer/mac_uninstall.command "$APPDIR/Uninstall grainsexuell.command"
+            cp docs/grainsexuell-tutorial.mp4 "$APPDIR/Tutorial.mp4"
             pkg app pkgroot/app /Applications
             # installer pages: README before, the MIT licence
             mkdir -p pkgres && cp installer/README.txt pkgres/README.txt && cp LICENSE pkgres/LICENSE.txt
