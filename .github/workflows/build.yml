@@ -105,27 +105,49 @@ jobs:
             ditto -c -k --keepParent "$OUT" "$OUT.zip"
             # installer: one component per format, so "Customize" can leave one out; files a .pkg lays down are
             # not quarantined, so no xattr step (the unsigned .pkg itself still needs right-click > Open)
-            for c in "vst3:grainsexuell.vst3:/Library/Audio/Plug-Ins/VST3" "au:grainsexuell.component:/Library/Audio/Plug-Ins/Components" "app:grainsexuell.app:/Applications"; do
+            # like the Windows installer: the app gets its own folder with README, manual and an uninstaller
+            for c in "vst3:grainsexuell.vst3:/Library/Audio/Plug-Ins/VST3" "au:grainsexuell.component:/Library/Audio/Plug-Ins/Components"; do
               IFS=: read -r id bundle dest <<< "$c"
               mkdir -p "pkgroot/$id" && cp -R "$OUT/$bundle" "pkgroot/$id/"
               pkgbuild --root "pkgroot/$id" --install-location "$dest" --identifier "com.beatsexuell.grainsexuell.$id" \
                 --version "$VERSION" "pkg-$id.pkg"
             done
+            APPDIR=pkgroot/app/grainsexuell
+            mkdir -p "$APPDIR" && cp -R "$OUT/grainsexuell.app" "$APPDIR/"
+            cp installer/README.txt "$APPDIR/README.txt"
+            cp installer/USER_MANUAL_mac.html "$APPDIR/User Manual.html"
+            cp installer/mac_uninstall.command "$APPDIR/Uninstall grainsexuell.command"
+            chmod +x "$APPDIR/Uninstall grainsexuell.command"
+            pkgbuild --root pkgroot/app --install-location /Applications --identifier com.beatsexuell.grainsexuell.app \
+              --version "$VERSION" pkg-app.pkg
+            # installer pages: README before, the MIT licence, a closing note
+            mkdir -p pkgres
+            cp installer/README.txt pkgres/README.txt
+            cp LICENSE pkgres/LICENSE.txt
+            printf '%s\n' '<html><body style="font-family:-apple-system,Helvetica;font-size:13px">' \
+              '<h2>grainsexuell is installed</h2>' \
+              '<p>Restart your DAW (Logic rescans Audio Units on start) and insert grainsexuell as an audio effect.</p>' \
+              '<p>The standalone app, the user manual and <b>Uninstall grainsexuell</b> are in <b>Applications &gt; grainsexuell</b>.</p>' \
+              '</body></html>' > pkgres/conclusion.html
             cat > distribution.xml <<EOF
           <?xml version="1.0" encoding="utf-8"?>
           <installer-gui-script minSpecVersion="2">
             <title>grainsexuell ${VERSION} beta</title>
+            <readme file="README.txt"/>
+            <license file="LICENSE.txt"/>
+            <conclusion file="conclusion.html" mime-type="text/html"/>
             <options customize="allow" require-scripts="false" hostArchitectures="x86_64,arm64"/>
             <choices-outline><line choice="vst3"/><line choice="au"/><line choice="app"/></choices-outline>
             <choice id="vst3" title="VST3 plugin"><pkg-ref id="com.beatsexuell.grainsexuell.vst3"/></choice>
             <choice id="au" title="Audio Unit (Logic, GarageBand)"><pkg-ref id="com.beatsexuell.grainsexuell.au"/></choice>
-            <choice id="app" title="Standalone app"><pkg-ref id="com.beatsexuell.grainsexuell.app"/></choice>
+            <choice id="app" title="Standalone app, manual and uninstaller"><pkg-ref id="com.beatsexuell.grainsexuell.app"/></choice>
             <pkg-ref id="com.beatsexuell.grainsexuell.vst3">pkg-vst3.pkg</pkg-ref>
             <pkg-ref id="com.beatsexuell.grainsexuell.au">pkg-au.pkg</pkg-ref>
             <pkg-ref id="com.beatsexuell.grainsexuell.app">pkg-app.pkg</pkg-ref>
           </installer-gui-script>
           EOF
-            productbuild --distribution distribution.xml --package-path . "grainsexuell-beta-${VERSION}-mac-installer.pkg"
+            productbuild --distribution distribution.xml --resources pkgres --package-path . \
+              "grainsexuell-beta-${VERSION}-mac-installer.pkg"
             # disk image: the same bundles plus an Applications link to drag the app onto
             mkdir dmgroot && cp -R "$OUT"/* dmgroot/ && ln -s /Applications dmgroot/Applications
             hdiutil create -volname "grainsexuell ${VERSION}" -srcfolder dmgroot -fs HFS+ -format UDZO -ov \
