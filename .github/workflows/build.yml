@@ -1,6 +1,6 @@
 # Builds, tests and packages grainsexuell for Windows x64, macOS (universal: Intel + Apple Silicon) and Linux x64.
 # A tag push (or a manual run with a release tag) attaches the zips and installers to that tag's GitHub release
-# (a draft is created if none exists); other runs keep them as short-lived workflow artifacts.
+# (a draft is created if none exists); other runs only build and test, they store nothing.
 name: build
 
 on:
@@ -152,16 +152,3 @@ jobs:
             ${{ env.PACKAGE }}.zip
             *-setup.exe
             *-mac-installer.pkg
-
-      - name: Keep as artifact
-        if: github.ref_type != 'tag' && inputs.release_tag == ''
-        uses: actions/upload-artifact@v5
-        continue-on-error: true # the private-repo artifact quota can be full; the build itself still counts
-        with:
-          name: ${{ env.PACKAGE }}
-          retention-days: 3
-          path: |
-            ${{ env.PACKAGE }}.zip
-            *-setup.exe
-            *-mac-installer.pkg
-          if-no-files-found: error
