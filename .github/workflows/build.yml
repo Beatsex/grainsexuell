@@ -145,7 +145,8 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ inputs.release_tag || github.ref_name }}
-          draft: true # never publishes by itself; an existing release of the tag keeps its state
+          # a tag push creates a draft; a manual run with release_tag leaves an existing release as it is (published stays published)
+          draft: ${{ inputs.release_tag == '' }}
           fail_on_unmatched_files: false
           files: |
             ${{ env.PACKAGE }}.zip
