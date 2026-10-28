@@ -105,37 +105,31 @@ jobs:
             ditto -c -k --keepParent "$OUT" "$OUT.zip"
             # installer: one component per format, so "Customize" can leave one out; files a .pkg lays down are
             # not quarantined, so no xattr step (the unsigned .pkg itself still needs right-click > Open)
+            # pkgbuild marks bundles relocatable by default: Installer would then update an older copy wherever it
+            # finds one (e.g. /Applications/grainsexuell.app) instead of installing to the given place
+            pkg() { # id root install-location
+              pkgbuild --analyze --root "$2" "$1.plist" && plutil -replace 0.BundleIsRelocatable -bool NO "$1.plist"
+              pkgbuild --root "$2" --component-plist "$1.plist" --install-location "$3" \
+                --identifier "com.beatsexuell.grainsexuell.$1" --version "$VERSION" "pkg-$1.pkg"
+            }
+            mkdir -p pkgroot/vst3 pkgroot/au && cp -R "$OUT/grainsexuell.vst3" pkgroot/vst3/ && cp -R "$OUT/grainsexuell.component" pkgroot/au/
+            pkg vst3 pkgroot/vst3 /Library/Audio/Plug-Ins/VST3
+            pkg au pkgroot/au /Library/Audio/Plug-Ins/Components
             # like the Windows installer: the app gets its own folder with README, manual and an uninstaller
-            for c in "vst3:grainsexuell.vst3:/Library/Audio/Plug-Ins/VST3" "au:grainsexuell.component:/Library/Audio/Plug-Ins/Components"; do
-              IFS=: read -r id bundle dest <<< "$c"
-              mkdir -p "pkgroot/$id" && cp -R "$OUT/$bundle" "pkgroot/$id/"
-              pkgbuild --root "pkgroot/$id" --install-location "$dest" --identifier "com.beatsexuell.grainsexuell.$id" \
-                --version "$VERSION" "pkg-$id.pkg"
-            done
             APPDIR=pkgroot/app/grainsexuell
             mkdir -p "$APPDIR" && cp -R "$OUT/grainsexuell.app" "$APPDIR/"
             cp installer/README.txt "$APPDIR/README.txt"
             cp installer/USER_MANUAL_mac.html "$APPDIR/User Manual.html"
             cp installer/mac_uninstall.command "$APPDIR/Uninstall grainsexuell.command"
-            chmod +x "$APPDIR/Uninstall grainsexuell.command"
-            pkgbuild --root pkgroot/app --install-location /Applications --identifier com.beatsexuell.grainsexuell.app \
-              --version "$VERSION" pkg-app.pkg
-            # installer pages: README before, the MIT licence, a closing note
-            mkdir -p pkgres
-            cp installer/README.txt pkgres/README.txt
-            cp LICENSE pkgres/LICENSE.txt
-            printf '%s\n' '<html><body style="font-family:-apple-system,Helvetica;font-size:13px">' \
-              '<h2>grainsexuell is installed</h2>' \
-              '<p>Restart your DAW (Logic rescans Audio Units on start) and insert grainsexuell as an audio effect.</p>' \
-              '<p>The standalone app, the user manual and <b>Uninstall grainsexuell</b> are in <b>Applications &gt; grainsexuell</b>.</p>' \
-              '</body></html>' > pkgres/conclusion.html
+            pkg app pkgroot/app /Applications
+            # installer pages: README before, the MIT licence
+            mkdir -p pkgres && cp installer/README.txt pkgres/README.txt && cp LICENSE pkgres/LICENSE.txt
             cat > distribution.xml <<EOF
           <?xml version="1.0" encoding="utf-8"?>
           <installer-gui-script minSpecVersion="2">
             <title>grainsexuell ${VERSION} beta</title>
             <readme file="README.txt"/>
             <license file="LICENSE.txt"/>
-            <conclusion file="conclusion.html" mime-type="text/html"/>
             <options customize="allow" require-scripts="false" hostArchitectures="x86_64,arm64"/>
             <choices-outline><line choice="vst3"/><line choice="au"/><line choice="app"/></choices-outline>
             <choice id="vst3" title="VST3 plugin"><pkg-ref id="com.beatsexuell.grainsexuell.vst3"/></choice>
