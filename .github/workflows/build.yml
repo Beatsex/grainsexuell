@@ -43,7 +43,7 @@ jobs:
         shell: bash
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Linux packages
         if: runner.os == 'Linux'
@@ -155,7 +155,7 @@ jobs:
 
       - name: Keep as artifact
         if: github.ref_type != 'tag' && inputs.release_tag == ''
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         continue-on-error: true # the private-repo artifact quota can be full; the build itself still counts
         with:
           name: ${{ env.PACKAGE }}
