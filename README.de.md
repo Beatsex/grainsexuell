@@ -1,5 +1,7 @@
 # grainsexuell
 
+[![build](https://github.com/Beatsex/grainsexuell/actions/workflows/build.yml/badge.svg)](https://github.com/Beatsex/grainsexuell/actions/workflows/build.yml) [![release](https://img.shields.io/github/v/release/Beatsex/grainsexuell?include_prereleases)](https://github.com/Beatsex/grainsexuell/releases/latest) [![license: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE) ![VST3 · AU · LV2](https://img.shields.io/badge/format-VST3%20%C2%B7%20AU%20%C2%B7%20LV2-pink)
+
 [English](README.md) · **Deutsch** · [Español](README.es.md) · [Français](README.fr.md) · [日本語](README.ja.md)
 
 Ein granularer Micro-Loop-Multieffekt mit zwei Engines und einem Phrasen-Looper, von **beatsexuell**.

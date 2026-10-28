@@ -1,0 +1,42 @@
+name: Bug report
+description: Something sounds wrong, crashes or does not load
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you played, what you heard (clicky, metallic, too quiet, too washy...), what you expected.
+    validations:
+      required: true
+  - type: input
+    id: preset
+    attributes:
+      label: Preset or settings
+      placeholder: e.g. Halo Static, or Cloud B, Swarm 80 %, Dry/Wet 60 %
+  - type: input
+    id: version
+    attributes:
+      label: grainsexuell version
+      placeholder: e.g. 0.3.0
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: System
+      options: [Windows, macOS (Apple Silicon), macOS (Intel), Linux]
+    validations:
+      required: true
+  - type: input
+    id: host
+    attributes:
+      label: DAW / host, format and sample rate
+      placeholder: e.g. Ableton Live 12, VST3, 48 kHz
+    validations:
+      required: true
+  - type: textarea
+    id: crash
+    attributes:
+      label: Crash only
+      description: What you clicked last. Attach the crash log if your DAW wrote one.
