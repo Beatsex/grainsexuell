@@ -157,7 +157,6 @@ jobs:
             zip -q -r "$OUT.zip" "$OUT"
           else
             cp "$A/Standalone/grainsexuell.exe" "$OUT/"
-            7z a -bd "$OUT.zip" "$OUT" > /dev/null
             choco install innosetup -y --no-progress > /dev/null
             "/c/Program Files (x86)/Inno Setup 6/ISCC.exe" installer/grainsexuell.iss
             cp build/installer/*.exe .
