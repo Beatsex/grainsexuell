@@ -126,6 +126,10 @@ jobs:
           </installer-gui-script>
           EOF
             productbuild --distribution distribution.xml --package-path . "grainsexuell-beta-${VERSION}-mac-installer.pkg"
+            # disk image: the same bundles plus an Applications link to drag the app onto
+            mkdir dmgroot && cp -R "$OUT"/* dmgroot/ && ln -s /Applications dmgroot/Applications
+            hdiutil create -volname "grainsexuell ${VERSION}" -srcfolder dmgroot -fs HFS+ -format UDZO -ov \
+              "grainsexuell-beta-${VERSION}-macos-universal.dmg"
           elif [ "$RUNNER_OS" = "Linux" ]; then
             cp -R "$A/LV2/grainsexuell.lv2" "$OUT/"
             cp "$A/Standalone/grainsexuell" "$OUT/"
@@ -152,3 +156,4 @@ jobs:
             ${{ env.PACKAGE }}.zip
             *-setup.exe
             *-mac-installer.pkg
+            *-macos-universal.dmg
