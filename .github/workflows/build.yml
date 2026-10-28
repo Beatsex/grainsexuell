@@ -166,7 +166,7 @@ jobs:
 
       - name: Attach to release
         if: github.ref_type == 'tag' || inputs.release_tag != ''
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ inputs.release_tag || github.ref_name }}
           # a tag push creates a draft; a manual run with release_tag leaves an existing release as it is (published stays published)
